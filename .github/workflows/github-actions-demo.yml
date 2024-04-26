@@ -16,4 +16,7 @@ jobs:
       - name: List files in the repository
         run: |
           Get-ChildItem -Path ${{ github.workspace }}
+      - name: Get Cycle-CLI version
+        run: |
+          cycle-cli.exe -v
       - run: echo "🍏 This job's status is ${{ job.status }}."
