@@ -11,7 +11,7 @@ jobs:
         env:
           CI_CYCLE_AUTH: ${{ secrets.CI_CYCLE_AUTH }}
           CI_CYCLE_AUTH_SECRET: ${{ secrets.CI_CYCLE_AUTH_SECRET }}
-        run: echo "My secret value is $CI_CYCLE_AUTH"
+        run: echo "My App ID is $CI_CYCLE_AUTH"
       
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       
@@ -26,11 +26,6 @@ jobs:
       
       - name: List files in the repository
         run: Get-ChildItem -Path ${{ github.workspace }}
-      
-      - name: Use a secret
-        env:
-          MY_SECRET: ${{ secrets.MY_SECRET_NAME }}
-        run: echo "My secret value is $MY_SECRET"
       
       - name: Get Cycle-CLI version
         run: cycle-cli.exe -v
