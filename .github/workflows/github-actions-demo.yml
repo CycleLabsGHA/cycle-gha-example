@@ -1,7 +1,8 @@
 name: GitHub Actions Demo
-run-name: "${{ github.actor }} is testing out GitHub Actions 🚀"
+
 on:
   push:
+
 jobs:
   Explore-GitHub-Actions:
     runs-on: self-hosted
@@ -11,22 +12,30 @@ jobs:
           CI_CYCLE_AUTH: ${{ secrets.CI_CYCLE_AUTH }}
           CI_CYCLE_AUTH_SECRET: ${{ secrets.CI_CYCLE_AUTH_SECRET }}
         run: echo "My secret value is $CI_CYCLE_AUTH"
+      
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      
       - run: echo "🖥️ This job is now running on a self-hosted Windows runner!"
+      
       - name: Check out repository code
         uses: actions/checkout@v4
+      
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+      
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+      
       - name: List files in the repository
-        run: |
-          Get-ChildItem -Path ${{ github.workspace }}
+        run: Get-ChildItem -Path ${{ github.workspace }}
+      
       - name: Use a secret
-            env:
-              MY_SECRET: ${{ secrets.MY_SECRET_NAME }}   
+        env:
+          MY_SECRET: ${{ secrets.MY_SECRET_NAME }}
+        run: echo "My secret value is $MY_SECRET"
+      
       - name: Get Cycle-CLI version
-        run: |
-          cycle-cli.exe -v
+        run: cycle-cli.exe -v
+      
       - name: Run API Test
-        run: |
-          cycle-cli --clientid $CI_CYCLE_AUTH --client-credential $CI_CYCLE_AUTH_SECRET -p ${WORKSPACE}\\${CI_CYCLE_PROJECT}\\${CI_CYCLE_PROJECT_FILE} -u ${CI_CYCLE_USER} --skip-initial-purge "${WORKSPACE}\\${CI_CYCLE_PROJECT}\\features\\api-test.feature"
+        run: cycle-cli --clientid $CI_CYCLE_AUTH --client-credential $CI_CYCLE_AUTH_SECRET -p ${WORKSPACE}\\${CI_CYCLE_PROJECT}\\${CI_CYCLE_PROJECT_FILE} -u ${CI_CYCLE_USER} --skip-initial-purge "${WORKSPACE}\\${CI_CYCLE_PROJECT}\\features\\api-test.feature"
+      
       - run: echo "🍏 This job's status is ${{ job.status }}."
