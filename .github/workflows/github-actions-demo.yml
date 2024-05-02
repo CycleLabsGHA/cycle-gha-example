@@ -33,4 +33,7 @@ jobs:
       - name: Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/api-test-updated.feature
       
+      - name: Run Browser Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/grocer.feature
+        
       - run: echo "🍏 This job's status is ${{ job.status }}."
