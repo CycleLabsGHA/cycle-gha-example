@@ -1,0 +1,14 @@
+name: ""
+params:
+    "": ""
+url: https://api.themoviedb.org/3/movie/550?api_key=38c06876773ca831bc17514c44661eca
+method: GET
+headers:
+    "": ""
+authentication:
+    bearer:
+        token: eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzOGMwNjg3Njc3M2NhODMxYmMxNzUxNGM0NDY2MWVjYSIsInN1YiI6IjY1MTFlMDQyMzQ0YThlMDk3MDA0ZmY4MyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.b44NTGm2Do7RX88BTodp4_qSCitN_bVO2qHzPoKFW34
+    type: bearer
+body:
+    bodytype: XML
+    contents: ""

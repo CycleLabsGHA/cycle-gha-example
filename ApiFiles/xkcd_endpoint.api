@@ -1,0 +1,22 @@
+name: ""
+params:
+    "": ""
+url: https://xkcd.com/info.0.json
+method: GET
+headers:
+    "": ""
+authentication:
+    bearer:
+        token: ""
+    type: bearer
+body:
+    bodytype: JSON
+    contents: |4+
+
+
+
+
+
+
+
+
