@@ -22,8 +22,15 @@ jobs:
       
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      
+      - name: Show Runner OS
+        run: echo "The operating system of the runner is ${{ runner.os }}"
+        
+      - name: Show Runner Labels
+        run: echo "The labels of the runner are ${{ runner.labels }}"
+        
+      - name: Show Runner Workspace
+        run: echo "The workspace of the runner is ${{ runner.workspace }}"
+        
       - name: List files in the repository
         run: Get-ChildItem -Path ${{ github.workspace }}
       
