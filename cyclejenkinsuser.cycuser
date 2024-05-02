@@ -1,0 +1,51 @@
+{
+  "additionalData" : {
+    "openTabs" : [ ]
+  },
+  "settings" : {
+    "EmailUsername" : "",
+    "DatastoreUrl" : "",
+    "CustomChromeBrowserLocation" : "/Users/rberger",
+    "DatastoreName" : "",
+    "SenderEmailAddress" : "",
+    "StoredCredentials" : [ {
+      "credentialsName" : "Cycleautomation",
+      "username" : "norman.stypczynski@yahoo.com",
+      "password" : "camindaweeds"
+    },
+    {
+      "credentialsName" : "MOCA2020",
+      "username" : "CYCLEUSER08",
+      "password" : "CYCLEUSER#08"
+    },
+    {
+      "credentialsName" : "Testme",
+      "username" : "testme",
+      "password" : "testme"
+    } ],
+    "SendEmailSummary" : false,
+    "CloseBrowserAfterScenario" : true,
+    "DatastorePassword" : "",
+    "WinAppDriverForceCloseLocalApp" : false,
+    "IEDriverLocation" : "c:\\tools\\selenium\\IEDriverServer.exe",
+    "EdgeDriverLocation" : "c:\\tools\\selenium\\msedgedriver.exe",
+    "UseCustomChromeLocation" : false,
+    "EmailHost" : "",
+    "CloseBrowserOnCycleExit" : true,
+    "WinAppDriverLocation" : "C:\\Program Files (x86)\\Windows Application Driver\\WinAppDriver.exe",
+    "EmailProtocol" : "SSL",
+    "DatastoreUsername" : "",
+    "EmailPassword" : "",
+    "ProduceLocalReport" : true,
+    "IncludeStepsInGroupTestReports" : false,
+    "RecipientEmail" : "",
+    "ChromeDriverLocation" : "c:\\tools\\selenium\\chromedriver.exe",
+    "KnownHostsLocation" : null,
+    "WriteToDatastore" : false,
+    "OutputDirectory" : "featureReports",
+    "EmailPort" : 0,
+    "DatastoreType" : "",
+    "DatastoreConnection" : "JDBC",
+    "ProduceLocalCsv" : false
+  }
+}

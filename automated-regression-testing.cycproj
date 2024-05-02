@@ -1,0 +1,50 @@
+{
+  "projectMetaData" : {
+    "name" : "daas-pipeline-demo",
+    "compatibilityVersion" : "2.7.1"
+  },
+  "settings" : {
+    "LocalReportOutputFormat" : "HTML",
+    "FeatureFailureStrategy" : "FEATURE",
+    "StepDelay" : 500,
+    "DefaultTerminalConnectWithin" : 90000,
+    "NonActionStepDelay" : 0,
+    "CaptureImageWidth" : 40,
+    "CaptureImageHeight" : 40,
+    "CloudGrpcHost" : "",
+    "DefaultWithinGui" : 10000,
+    "KeystrokeDelay" : 200,
+    "CloudProjectName" : "",
+    "SSLValidation" : "Default",
+    "KeyMappingFile" : null,
+    "LocalReportCustomPath" : null,
+    "VariableBlackListEnabled" : false,
+    "GroupTestFailureStrategy" : "ALL_TESTS",
+    "ControlVisPaste" : true,
+    "DefaultWithinTerminal" : 100,
+    "OnceWaitTime" : 120000,
+    "TruststorePath" : null,
+    "ImageMatchCorrelation" : 99,
+    "ImageMatchAllDisplays" : true,
+    "TerminalSendSingleLF" : false,
+    "CloudProjectId" : "",
+    "StoredConnections" : [ {
+      "connectionName" : "PDBD-WM202011",
+      "connectionType" : "MOCA",
+      "url" : "https://cycl-pdbd-wm202011-moca.wm-servers.com/service"
+    } ],
+    "RemoteWebDriverHeadlessKey" : true,
+    "WaitDurationBeforeRestart" : 5000,
+    "MinimizeCycleDuringTest" : false,
+    "LocalReport" : "Default",
+    "TerminalSteadyStateDuration" : 1000,
+    "SkipMocaCertValidation" : false,
+    "PlaylistFailureStrategy" : "ALL_TESTS",
+    "CloudTenantName" : "",
+    "CloudGrpcPort" : "",
+    "VariableBlackList" : [ ],
+    "CloudClientId" : "",
+    "VariableBlackListMask" : "********",
+    "SaveMatchedImages" : false
+  }
+}
