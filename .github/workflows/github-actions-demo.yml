@@ -25,9 +25,6 @@ jobs:
       - name: Show Runner OS
         run: echo "The operating system of the runner is ${{ runner.os }}"
         
-      - name: Show Runner Labels
-        run: echo "The labels of the runner are ${{ runner.labels }}"
-        
       - name: Show Runner Workspace
         run: echo "The workspace of the runner is ${{ runner.workspace }}"
         
