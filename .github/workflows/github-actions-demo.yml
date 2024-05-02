@@ -6,9 +6,13 @@ jobs:
   Explore-GitHub-Actions:
     runs-on: self-hosted
     steps:
+      - name: Use a secret
+        env:
+          CI_CYCLE_AUTH: ${{ secrets.CI_CYCLE_AUTH }}
+          CI_CYCLE_AUTH_SECRET: ${{ secrets.CI_CYCLE_AUTH_SECRET }}
+        run: echo "My secret value is $CI_CYCLE_AUTH"
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🖥️ This job is now running on a self-hosted Windows runner!"
-      #- run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v4
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
@@ -16,7 +20,13 @@ jobs:
       - name: List files in the repository
         run: |
           Get-ChildItem -Path ${{ github.workspace }}
+      - name: Use a secret
+            env:
+              MY_SECRET: ${{ secrets.MY_SECRET_NAME }}   
       - name: Get Cycle-CLI version
         run: |
           cycle-cli.exe -v
+      - name: Run API Test
+        run: |
+          cycle-cli --clientid $CI_CYCLE_AUTH --client-credential $CI_CYCLE_AUTH_SECRET -p ${WORKSPACE}\\${CI_CYCLE_PROJECT}\\${CI_CYCLE_PROJECT_FILE} -u ${CI_CYCLE_USER} --skip-initial-purge "${WORKSPACE}\\${CI_CYCLE_PROJECT}\\features\\api-test.feature"
       - run: echo "🍏 This job's status is ${{ job.status }}."
