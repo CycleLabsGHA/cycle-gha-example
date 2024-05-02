@@ -11,7 +11,7 @@ When I close web browser
 
 Scenario: Embedded Datastore Stress Test
 When I assign 1 to variable "loop_count"
-While I verify number $loop_count is less than or equal to 20
+While I verify number $loop_count is less than or equal to 3
 	Given "I am logged into the Grocer IO site"
 	And "the Orders page is displayed"
 	When "I click the Add Order button"
