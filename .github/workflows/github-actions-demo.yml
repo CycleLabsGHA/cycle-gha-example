@@ -31,6 +31,6 @@ jobs:
         run: cycle-cli.exe -v
       
       - name: Run API Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p ${WORKSPACE}\\${CI_CYCLE_PROJECT}\\${CI_CYCLE_PROJECT_FILE} -u ${CI_CYCLE_USER} --skip-initial-purge "${WORKSPACE}\\${CI_CYCLE_PROJECT}\\features\\api-test.feature"
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/api-test-updated.feature
       
       - run: echo "🍏 This job's status is ${{ job.status }}."
