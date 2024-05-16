@@ -7,10 +7,10 @@ jobs:
   Run-Cycle-Feature-POC:
     runs-on: self-hosted
     steps:
-      - name: Use a secret
-        env:
-          CI_CYCLE_AUTH: ${{ secrets.CI_CYCLE_AUTH }}
-          CI_CYCLE_AUTH_SECRET: ${{ secrets.CI_CYCLE_AUTH_SECRET }}
+      # - name: Use a secret
+      #   env:
+      #     CI_CYCLE_AUTH: ${{ secrets.CI_CYCLE_AUTH }}
+      #     CI_CYCLE_AUTH_SECRET: ${{ secrets.CI_CYCLE_AUTH_SECRET }}
       
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       
