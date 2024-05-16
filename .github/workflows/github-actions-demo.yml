@@ -11,7 +11,6 @@ jobs:
         env:
           CI_CYCLE_AUTH: ${{ secrets.CI_CYCLE_AUTH }}
           CI_CYCLE_AUTH_SECRET: ${{ secrets.CI_CYCLE_AUTH_SECRET }}
-        run: echo "My App ID is $CI_CYCLE_AUTH"
       
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       
@@ -34,10 +33,10 @@ jobs:
       - name: Get Cycle-CLI version
         run: cycle-cli.exe -v
       
-      - name: Run API Test
+      - name: Cycle CLI - Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/api-test-updated.feature
       
-      - name: Run Browser Test
+      - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/grocer.feature
         
       - run: echo "🍏 This job's status is ${{ job.status }}."
