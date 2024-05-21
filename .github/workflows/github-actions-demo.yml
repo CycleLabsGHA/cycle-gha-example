@@ -43,7 +43,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: cycle-reports
-          path: "C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\featureReports\"
+          path: C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\featureReports\
 
         
       - run: echo "🍏 This job's status is ${{ job.status }}."
