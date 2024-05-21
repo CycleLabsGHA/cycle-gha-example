@@ -18,7 +18,7 @@ jobs:
 
       - name: Print Runner Host Name
         run: echo $env:COMPUTERNAME
-        shell: pwsh
+        shell: powershell
       
       - name: Check out repository code
         uses: actions/checkout@v4
