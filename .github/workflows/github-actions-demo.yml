@@ -15,6 +15,10 @@ jobs:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       
       - run: echo "🖥️ This job is now running on a self-hosted Windows runner!"
+
+      - name: Print Runner Host Name
+        run: echo $env:COMPUTERNAME
+        shell: pwsh
       
       - name: Check out repository code
         uses: actions/checkout@v4
