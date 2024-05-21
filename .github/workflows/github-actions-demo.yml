@@ -38,5 +38,12 @@ jobs:
       
       - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/grocer.feature
+      
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: cycle-reports
+          path: "C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\featureReports\"
+
         
       - run: echo "🍏 This job's status is ${{ job.status }}."
