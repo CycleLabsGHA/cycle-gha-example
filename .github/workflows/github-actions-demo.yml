@@ -4,10 +4,11 @@ on:
   push:
 
 jobs:
-  Run-Cycle-Feature-POC:
-    runs-on: self-hosted
-    steps:
 
+  scale-up-instance:
+    runs-on: ubuntu-latest
+    steps:
+    
       - name: Log in with Azure
         uses: azure/login@v1
         with:
@@ -15,7 +16,25 @@ jobs:
 
       - name: Interact with the GitHub Actions scaleset
         run: |
-          az vmss list-instances --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --output table
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1
+
+      - name: Wait for VMSS instance to be ready
+        run: |
+          echo "Waiting for VMSS instance to be provisioned..."
+          sleep 300
+
+  run-cycle-tests:
+    runs-on: self-hosted
+    steps:
+
+      # - name: Log in with Azure
+      #   uses: azure/login@v1
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # - name: Interact with the GitHub Actions scaleset
+      #   run: |
+      #     az vmss list-instances --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --output table
         
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
             
@@ -52,3 +71,25 @@ jobs:
 
         
       - run: echo "🍏 This job's status is ${{ job.status }}."
+  
+  scale-down-instance:
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 0
+
+      - name: Wait for VMSS instance to deallocate
+        run: |
+          echo "Waiting for VMSS instance to be deallocated..."
+          sleep 300
+          
+      - name: Make sure the instance has been deallocated
+        run: |
+          az vmss list-instances --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --output table
