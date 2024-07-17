@@ -18,10 +18,10 @@ jobs:
         run: |
           az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1
 
-      - name: Wait for VMSS instance to be ready
-        run: |
-          echo "Waiting for VMSS instance to be provisioned..."
-          sleep 300
+      # - name: Wait for VMSS instance to be ready
+      #   run: |
+      #     echo "Waiting for VMSS instance to be provisioned..."
+      #     sleep 300
 
   run-cycle-tests:
     needs: scale-up-instance
@@ -87,10 +87,10 @@ jobs:
         run: |
           az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 0
 
-      - name: Wait for VMSS instance to deallocate
-        run: |
-          echo "Waiting for VMSS instance to be deallocated..."
-          sleep 300
+      # - name: Wait for VMSS instance to deallocate
+      #   run: |
+      #     echo "Waiting for VMSS instance to be deallocated..."
+      #     sleep 300
           
       - name: Make sure the instance has been deallocated
         run: |
