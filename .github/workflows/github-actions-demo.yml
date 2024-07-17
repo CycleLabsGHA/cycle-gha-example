@@ -24,6 +24,7 @@ jobs:
           sleep 300
 
   run-cycle-tests:
+    needs: scale-up-instance
     runs-on: self-hosted
     steps:
 
@@ -73,6 +74,7 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
   
   scale-down-instance:
+    needs: run-cycle-tests
     runs-on: ubuntu-latest
     steps:
     
