@@ -16,7 +16,7 @@ jobs:
 
       - name: Interact with the GitHub Actions scaleset
         run: |
-          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1 >/dev/null 2>&1
 
       # - name: Wait for VMSS instance to be ready
       #   run: |
@@ -85,7 +85,7 @@ jobs:
 
       - name: Interact with the GitHub Actions scaleset
         run: |
-          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 0
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 0 >/dev/null 2>&1
 
       # - name: Wait for VMSS instance to deallocate
       #   run: |
