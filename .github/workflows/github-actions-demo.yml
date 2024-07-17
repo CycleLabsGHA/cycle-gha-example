@@ -11,6 +11,18 @@ jobs:
       #   env:
       #     CI_CYCLE_AUTH: ${{ secrets.CI_CYCLE_AUTH }}
       #     CI_CYCLE_AUTH_SECRET: ${{ secrets.CI_CYCLE_AUTH_SECRET }}
+
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: '${{ secrets.AZURE_CREDENTIALS }}'
+          enable-AzPSSession: true
+
+      - name: Azure PowerShell Action
+        uses: Azure/powershell@v1
+        with:
+          inlineScript: Get-AzResourceGroup -Name "6679-cycle-gha-runner-scaleset"
+          azPSVersion: "latest"
       
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
             
