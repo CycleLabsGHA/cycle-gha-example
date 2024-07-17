@@ -7,24 +7,19 @@ jobs:
   Run-Cycle-Feature-POC:
     runs-on: self-hosted
     steps:
-      # - name: Use a secret
-      #   env:
-      #     CI_CYCLE_AUTH: ${{ secrets.CI_CYCLE_AUTH }}
-      #     CI_CYCLE_AUTH_SECRET: ${{ secrets.CI_CYCLE_AUTH_SECRET }}
 
       - name: Log in with Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Azure CLI script
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.0.72
-          inlineScript: |
-            az account show
-            az storage -h
-      
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss list-instances \
+            --resource-group 6679-cycle-gha-runner-scaleset \
+            --name cycle-gha-runner-scaleset \
+            --output table
+        
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
             
       - name: Check out repository code
