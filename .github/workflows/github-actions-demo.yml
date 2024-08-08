@@ -3,7 +3,7 @@ name: Using GitHub Actions to run Cycle features!
 on:
   push:
   schedule:
-    - cron: "0 14 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
+    - cron: "0 13 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
 
 jobs:
 
@@ -18,7 +18,7 @@ jobs:
 
       - name: Interact with the GitHub Actions scaleset
         run: |
-          az vmss scale --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --new-capacity 1 >/dev/null 2>&1
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1 >/dev/null 2>&1
 
       # - name: Wait for VMSS instance to be ready
       #   run: |
@@ -87,7 +87,7 @@ jobs:
 
       - name: Interact with the GitHub Actions scaleset
         run: |
-          az vmss scale --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --new-capacity 0 >/dev/null 2>&1
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 0 >/dev/null 2>&1
 
       # - name: Wait for VMSS instance to deallocate
       #   run: |
@@ -96,4 +96,4 @@ jobs:
           
       - name: Make sure the instance has been deallocated
         run: |
-          az vmss list-instances --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --output table
+          az vmss list-instances --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --output table
