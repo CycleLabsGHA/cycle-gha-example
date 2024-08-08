@@ -1,7 +1,7 @@
 name: Testing Cycle 2.19 RC
 
 on:
-  push:
+  #push:
   schedule:
     - cron: "0 14 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
 
