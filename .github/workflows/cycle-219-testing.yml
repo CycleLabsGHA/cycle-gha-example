@@ -1,0 +1,99 @@
+name: Using GitHub Actions to run Cycle features!
+
+on:
+  push:
+  schedule:
+    - cron: "0 14 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
+
+jobs:
+
+  scale-up-instance:
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss scale --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --new-capacity 1 >/dev/null 2>&1
+
+      # - name: Wait for VMSS instance to be ready
+      #   run: |
+      #     echo "Waiting for VMSS instance to be provisioned..."
+      #     sleep 300
+
+  run-cycle-tests:
+    needs: scale-up-instance
+    runs-on: self-hosted
+    steps:
+
+      # - name: Log in with Azure
+      #   uses: azure/login@v1
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # - name: Interact with the GitHub Actions scaleset
+      #   run: |
+      #     az vmss list-instances --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --output table
+        
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+            
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+
+      - run: echo "🖥️ This job is now running on a self-hosted Windows runner named ${{ runner.name	}} !"
+
+      - name: Show Runner OS
+        run: echo "The operating system of the runner is ${{ runner.os }}"
+        
+      - name: Show Runner Workspace
+        run: echo "The workspace of the runner is ${{ runner.workspace }}"
+        
+      - name: List files in the repository
+        run: Get-ChildItem -Path ${{ github.workspace }}
+      
+      - name: Get Cycle-CLI version
+        run: cycle-cli.exe -v
+      
+      - name: Cycle CLI - Run API Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/api-test-updated.feature
+      
+      - name: Cycle CLI - Run Browser Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/grocer.feature
+      
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cycle-reports
+          path: C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\featureReports\
+
+        
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+  
+  scale-down-instance:
+    needs: run-cycle-tests
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss scale --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --new-capacity 0 >/dev/null 2>&1
+
+      # - name: Wait for VMSS instance to deallocate
+      #   run: |
+      #     echo "Waiting for VMSS instance to be deallocated..."
+      #     sleep 300
+          
+      - name: Make sure the instance has been deallocated
+        run: |
+          az vmss list-instances --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --output table
