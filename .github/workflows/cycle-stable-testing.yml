@@ -52,7 +52,7 @@ jobs:
           } else {
               Write-Host "Azure CLI is already installed."
           }
-        shell: pwsh
+        shell: powershell
 
       - name: Log in with Azure
         uses: azure/login@v1
@@ -68,7 +68,7 @@ jobs:
             echo "::add-mask::$secret_value"
             echo "$secret=$secret_value" >> $Env:GITHUB_ENV
           }
-        shell: pwsh
+        shell: powershell
         
       - name: List files in the repository
         run: Get-ChildItem -Path ${{ github.workspace }}
