@@ -1,4 +1,4 @@
-name: Using GitHub Actions to run Cycle features!
+name: Testing Cycle 2.19 RC
 
 on:
   push:
