@@ -2,6 +2,7 @@ name: Testing Cycle 2.18 STABLE
 
 on:
   #push:
+  workflow_dispatch:
   schedule:
     - cron: "0 13 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
 
