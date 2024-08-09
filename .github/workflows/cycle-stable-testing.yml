@@ -65,7 +65,7 @@ jobs:
           foreach ($secret in $secret_names) {
             $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
             # Mask the secret value in logs
-            # echo "::add-mask::$secret_value"
+            echo "::add-mask::$secret_value"
             echo "$secret=$secret_value" >> $Env:GITHUB_ENV
           }
         shell: powershell
