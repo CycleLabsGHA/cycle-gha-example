@@ -21,34 +21,6 @@ jobs:
         run: |
           az vmss scale --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --new-capacity 1 >/dev/null 2>&1
 
-      # - name: Wait for VMSS instance to be ready
-      #   run: |
-      #     echo "Waiting for VMSS instance to be provisioned..."
-      #     sleep 300
-
-name: Testing Cycle 2.18 STABLE
-
-on:
-  #push:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 13 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
-
-jobs:
-
-  scale-up-instance:
-    runs-on: ubuntu-latest
-    steps:
-    
-      - name: Log in with Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Interact with the GitHub Actions scaleset
-        run: |
-          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1 >/dev/null 2>&1
-
   run-cycle-tests:
     needs: scale-up-instance
     runs-on: self-hosted
