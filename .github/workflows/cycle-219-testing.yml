@@ -26,19 +26,33 @@ jobs:
       #     echo "Waiting for VMSS instance to be provisioned..."
       #     sleep 300
 
+name: Testing Cycle 2.18 STABLE
+
+on:
+  #push:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 13 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
+
+jobs:
+
+  scale-up-instance:
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1 >/dev/null 2>&1
+
   run-cycle-tests:
     needs: scale-up-instance
     runs-on: self-hosted
     steps:
-
-      # - name: Log in with Azure
-      #   uses: azure/login@v1
-      #   with:
-      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      # - name: Interact with the GitHub Actions scaleset
-      #   run: |
-      #     az vmss list-instances --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --output table
         
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
             
@@ -54,6 +68,35 @@ jobs:
         
       - name: Show Runner Workspace
         run: echo "The workspace of the runner is ${{ runner.workspace }}"
+      
+      - name: Install Azure CLI if not installed
+        run: |
+          # Check if Azure CLI is installed
+          if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+              Write-Host "Azure CLI not found. Installing..."
+              Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile AzureCLI.msi
+              Start-Process msiexec.exe -ArgumentList '/I AzureCLI.msi /quiet /norestart' -NoNewWindow -Wait
+              Write-Host "Azure CLI installed successfully."
+          } else {
+              Write-Host "Azure CLI is already installed."
+          }
+        shell: powershell
+
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Get specific secrets and set environment variables
+        run: |
+          $secret_names = @("PW-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
+          foreach ($secret in $secret_names) {
+            $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
+            # Mask the secret value in logs
+            echo "::add-mask::$secret_value"
+            echo "$secret=$secret_value" >> $Env:GITHUB_ENV
+          }
+        shell: powershell
         
       - name: List files in the repository
         run: Get-ChildItem -Path ${{ github.workspace }}
@@ -66,6 +109,12 @@ jobs:
       
       - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/grocer.feature
+        
+      - name: Cycle CLI - Run Java Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/java-app-test.feature
+        
+      - name: Cycle CLI - Run Connection Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge features/conf-file-cycle-connection-test.feature
       
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -76,7 +125,10 @@ jobs:
         
       - run: echo "🍏 This job's status is ${{ job.status }}."
   
+  
   scale-down-instance:
+    # This makes sure that the scale set instance is deallocated even if the Cycle test(s) fail.
+    if: always()
     needs: run-cycle-tests
     runs-on: ubuntu-latest
     steps:
@@ -90,11 +142,6 @@ jobs:
         run: |
           az vmss scale --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --new-capacity 0 >/dev/null 2>&1
 
-      # - name: Wait for VMSS instance to deallocate
-      #   run: |
-      #     echo "Waiting for VMSS instance to be deallocated..."
-      #     sleep 300
-          
       - name: Make sure the instance has been deallocated
         run: |
           az vmss list-instances --resource-group "4664-ado-devprog-scaleset" --name "ado-devprog-scaleset" --output table
