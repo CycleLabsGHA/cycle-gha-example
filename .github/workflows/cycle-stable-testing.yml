@@ -65,7 +65,7 @@ jobs:
           foreach ($secret in $secret_names) {
             $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
             # Mask the secret value in logs
-            echo "::add-mask::$secret_value"
+            # echo "::add-mask::$secret_value"
             echo "$secret=$secret_value" >> $Env:GITHUB_ENV
           }
         shell: powershell
@@ -98,6 +98,8 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
   
   scale-down-instance:
+    # This makes sure that the scale set instance is deallocated even if the Cycle test(s) fail.
+    if: always()
     needs: run-cycle-tests
     runs-on: ubuntu-latest
     steps:
@@ -110,12 +112,7 @@ jobs:
       - name: Interact with the GitHub Actions scaleset
         run: |
           az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 0 >/dev/null 2>&1
-
-      # - name: Wait for VMSS instance to deallocate
-      #   run: |
-      #     echo "Waiting for VMSS instance to be deallocated..."
-      #     sleep 300
-          
+        
       - name: Make sure the instance has been deallocated
         run: |
           az vmss list-instances --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --output table
