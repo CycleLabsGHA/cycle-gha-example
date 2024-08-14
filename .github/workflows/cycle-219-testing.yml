@@ -77,7 +77,8 @@ jobs:
         run: cycle-cli.exe -v
 
       - name: Make an output directory to store .db files in
-        run: mkdir .\output
+        run: |
+          mkdir "${{ runner.workspace }}\output"
         
       - name: Cycle CLI - Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory ./output features/api-test-updated.feature
