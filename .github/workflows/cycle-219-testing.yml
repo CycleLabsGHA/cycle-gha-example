@@ -99,7 +99,11 @@ jobs:
             C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\featureReports\
             C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\output\
 
-        
+      - name: Check output directory
+        run: |
+          cd C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\output\
+          dir
+    
       - run: echo "🍏 This job's status is ${{ job.status }}."
   
   
