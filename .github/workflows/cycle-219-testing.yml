@@ -78,19 +78,19 @@ jobs:
 
       - name: Make an output directory to store .db files in
         run: |
-          mkdir "${{ runner.workspace }}\output"
+          mkdir "${{ github.workspace }}\output"
         
       - name: Cycle CLI - Run API Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory "${{ runner.workspace }}\output" features/api-test-updated.feature
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory "${{ github.workspace }}\output" features/api-test-updated.feature
       
       - name: Cycle CLI - Run Browser Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory "${{ runner.workspace }}\output" features/grocer.feature
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory "${{ github.workspace }}\output" features/grocer.feature
         
       - name: Cycle CLI - Run Java Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory "${{ runner.workspace }}\output" features/java-app-test.feature
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory "${{ github.workspace }}\output" features/java-app-test.feature
         
       - name: Cycle CLI - Run Connection Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory "${{ runner.workspace }}\output" features/conf-file-cycle-connection-test.feature
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser --skip-initial-purge --env-file ./config/.env --db-file-output-directory "${{ github.workspace }}\output" features/conf-file-cycle-connection-test.feature
       
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
