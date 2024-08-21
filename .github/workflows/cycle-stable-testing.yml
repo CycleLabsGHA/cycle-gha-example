@@ -24,6 +24,7 @@ jobs:
   run-cycle-tests:
     needs: scale-up-instance
     runs-on: self-hosted
+    timeout-minutes: 10  # Set the timeout to 10 minutes
     steps:
         
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
