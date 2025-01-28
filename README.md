@@ -8,5 +8,8 @@ The runners used for this workflow are dynamically spun up from an Azure scalese
 - The Cycle features then run on the new scale set instance.
 - After either `success` or `failure`, we use Azure CLI again to set the instance level back to `0` to deprovision our instance.
 
+# Test Status
+![Pipeline Status](https://github.com/CycleLabsGHA/cycle-gha-example/actions/workflows/cycle-stable-testing.yml/badge.svg)
+
 # Documentation
 Please note this repo just serves as the repo for our GitHub Actions example, for **FULL DOCUMENTATION** on how to use `cycle-cli` with GitHub Actions please see our CI/CD example repository: [Using cycle-cli in a GitHub Actions pipeline](https://dev.azure.com/cyclelabs/cycle-codetemplates/_git/githubactions)
