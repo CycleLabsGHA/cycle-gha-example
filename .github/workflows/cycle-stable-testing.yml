@@ -4,7 +4,8 @@ on:
   #push:
   workflow_dispatch:
   schedule:
-    - cron: "0 16 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
+    #- cron: "0 16 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
+    - cron: "0 */2 * * 1-5"
 
 jobs:
 
