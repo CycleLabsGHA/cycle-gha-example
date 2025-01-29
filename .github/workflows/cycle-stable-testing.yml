@@ -3,6 +3,11 @@ name: Testing Cycle 2.20 STABLE
 on:
   #push:
   workflow_dispatch:
+    inputs:
+      feature_file:
+        description: "Feature file to run"
+        required: false
+        default: "features/java-app-test.feature"
   schedule:
     #- cron: "0 16 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
     - cron: "0 */2 * * 1-5"
@@ -85,7 +90,7 @@ jobs:
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature
         
       - name: Cycle CLI - Run Java Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser ${{ inputs.feature_file }}
         
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature
