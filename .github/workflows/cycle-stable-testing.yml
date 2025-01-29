@@ -4,6 +4,10 @@ on:
   #push:
   workflow_dispatch:
     inputs:
+      TEST_AUTOMATION_CI_ENVIRONMENT:
+        description: "Specify the test environment (e.g., wms1, wms2, wms3)"
+        required: false
+        default: "wms1"
       feature_file:
         description: "Feature file to run"
         required: false
@@ -32,7 +36,13 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10  # Set the timeout to 10 minutes
     steps:
+      
+      - name: Set Environment Variable
+        run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $GITHUB_ENV
         
+      - name: Use the Environment Variable
+        run: echo "Running Cycle tests using the $TEST_AUTOMATION_CI_ENVIRONMENT environment"
+
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
             
       - name: Check out repository code
