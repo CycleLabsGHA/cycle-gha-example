@@ -94,17 +94,44 @@ jobs:
         run: cycle-cli.exe -v
       
       - name: Cycle CLI - Run API Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath test_logs.txt -Append
+        shell: pwsh
       
       - name: Cycle CLI - Run Browser Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath test_logs.txt -Append
+        shell: pwsh
         
       - name: Cycle CLI - Run Java Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser ${{ inputs.feature_file }}
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser ${{ inputs.feature_file }}  | Tee-Object -FilePath test_logs.txt -Append
+        shell: pwsh
         
       - name: Cycle CLI - Run Connection Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature
-      
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath test_logs.txt -Append
+        shell: pwsh
+        
+      - name: Parse Cycle log file for failed scenarios
+        run: |
+          $failedScenarios = Get-Content test_logs.txt | Where-Object { $_ -match "Scenario: .* \[Fail\]" }
+          $failedScenarios | Set-Content failed_scenarios.txt
+        shell: pwsh
+
+      - name: Save failed scenarios as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-scenarios
+          path: failed_scenarios.txt
+
+      - name: Read and set failed scenarios as environment variable
+        run: |
+          $failedScenarios = Get-Content failed_scenarios.txt -Raw
+          echo "FAILED_SCENARIOS=$failedScenarios" | Out-File -FilePath $env:GITHUB_ENV -Append
+        shell: pwsh
+
+      - name: Use failed scenarios
+        run: |
+          echo "The following scenarios failed: $env:FAILED_SCENARIOS"
+        shell: pwsh
+        
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
