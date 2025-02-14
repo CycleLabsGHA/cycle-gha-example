@@ -107,7 +107,7 @@ jobs:
         
       - name: Parse Cycle log file for failed scenarios
         run: |
-          $failedScenarios = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match "Scenario: .* \[Fail\]" }
+          $failedScenarios = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match "Scenario: .* \[Pass\]" }
           $failedScenarios | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
 
       - name: Save failed scenarios as artifact
