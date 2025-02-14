@@ -105,40 +105,22 @@ jobs:
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         
-      - name: Parse Cycle log file for passed and failed scenarios
+      - name: Parse Cycle log file for failed scenarios
         run: |
-          # Scrape the Cycle CLI output for tests that ran for scenarios that Failed or Passed.
-          $testLogs = Get-Content "${{ runner.workspace }}\test_logs.txt"
-          
-          # Filter the passed and failed scenarios
-          $passedScenarios = $testLogs | Where-Object { $_ -match "Scenario: .* \[Pass\]" }
-          $failedScenarios = $testLogs | Where-Object { $_ -match "Scenario: .* \[Fail\]" }
+          # Scrape the Cycle CLI output for tests that ran for scenarios that Failed (by using [Fail]). Right now I have it set to [Pass] to create mock data.
+          $failedScenarios = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match "Scenario: .* \[Pass\]" }
+          $failedScenarios | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
 
-          "=== Passed Scenarios ===" | Out-File "${{ runner.workspace }}\test_results.txt" -Append
-          $passedScenarios | Out-File "${{ runner.workspace }}\test_results.txt" -Append
-
-          # Create or overwrite the file with the passed and failed scenarios
-          "=== Failed Scenarios ===" | Out-File "${{ runner.workspace }}\test_results.txt"
-          $failedScenarios | Out-File "${{ runner.workspace }}\test_results.txt" -Append
-          
-      - name: Read and parse failed and passed scenarios
+      - name: Read and parse failed scenarios
         run: |
-          # Read the consolidated results from the file
-          $testResults = Get-Content "${{ runner.workspace }}\test_results.txt"
-
-          # Emojis for better display
-          $failedEmoji = "❌"
-          $passedEmoji = "✅"
-
-          # Output the consolidated results with emojis
-          Write-Host "$passedEmoji The following scenarios passed:`n$($testResults -match '=== Passed Scenarios ===')"
-          Write-Host "$failedEmoji The following scenarios failed:`n$($testResults -match '=== Failed Scenarios ===')"
+          $failedScenarios = Get-Content "${{ runner.workspace }}\failed_scenarios.txt" -Raw
+          Write-Host "The following scenarios failed:`n $failedScenarios"
 
       - name: Save failed scenarios as artifact
         uses: actions/upload-artifact@v4
         with:
           name: failed-scenarios
-          path: C:\actions-runner\_work\cycle-gha-example\test_results.txt
+          path: C:\actions-runner\_work\cycle-gha-example\failed_scenarios.txt
           
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
