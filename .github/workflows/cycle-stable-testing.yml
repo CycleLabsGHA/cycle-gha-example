@@ -112,19 +112,13 @@ jobs:
 
       - name: Output Cycle test logs in pipeline
         run: |
-          Write-Host "Contents of the test logs:"
-          Get-Content "${{ runner.workspace }}\test_logs.txt"
           Write-Host "Contents of failed scenarios"
           Get-Content "${{ runner.workspace }}\failed_scenarios.txt"
 
-      - name: Read and set failed scenarios as environment variable
+      - name: Read and parse failed scenarios
         run: |
           $failedScenarios = Get-Content "${{ runner.workspace }}\failed_scenarios.txt" -Raw
-          echo "FAILED_SCENARIOS=$failedScenarios" | Out-File -FilePath $env:GITHUB_ENV -Append
-      
-      - name: Use failed scenarios
-        run: |
-          Write-Host "The following scenarios failed: $env:FAILED_SCENARIOS"
+          Write-Host "The following scenarios failed:`n $failedScenarios"
 
       - name: Save failed scenarios as artifact
         uses: actions/upload-artifact@v4
@@ -138,7 +132,6 @@ jobs:
           name: cycle-reports
           path: C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\featureReports\
 
-        
       - run: echo "🍏 This job's status is ${{ job.status }}."
   
   scale-down-instance:
