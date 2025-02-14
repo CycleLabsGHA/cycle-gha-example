@@ -104,6 +104,11 @@ jobs:
         
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        
+      - name: Parse Cycle log file for failed scenarios
+        run: |
+          $failedScenarios = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match "Scenario: .* \[Pass\]" }
+          $failedScenarios | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
 
       - name: Output Cycle test logs in pipeline
         run: |
@@ -111,11 +116,6 @@ jobs:
           Get-Content "${{ runner.workspace }}\test_logs.txt"
           Write-Host "Contents of failed scenarios"
           Get-Content "${{ runner.workspace }}\failed_scenarios.txt"
-        
-      - name: Parse Cycle log file for failed scenarios
-        run: |
-          $failedScenarios = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match "Scenario: .* \[Pass\]" }
-          $failedScenarios | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
 
       - name: Save failed scenarios as artifact
         uses: actions/upload-artifact@v4
@@ -127,10 +127,10 @@ jobs:
         run: |
           $failedScenarios = Get-Content "${{ runner.workspace }}\failed_scenarios.txt" -Raw
           echo "FAILED_SCENARIOS=$failedScenarios" | Out-File -FilePath $env:GITHUB_ENV -Append
-
+      
       - name: Use failed scenarios
         run: |
-          echo "The following scenarios failed: $env:FAILED_SCENARIOS"
+          Write-Host "The following scenarios failed: $env:FAILED_SCENARIOS"
         
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
