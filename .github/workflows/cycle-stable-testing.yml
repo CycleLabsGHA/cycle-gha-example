@@ -117,12 +117,6 @@ jobs:
           Write-Host "Contents of failed scenarios"
           Get-Content "${{ runner.workspace }}\failed_scenarios.txt"
 
-      - name: Save failed scenarios as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: failed-scenarios
-          path: C:\actions-runner\_work\cycle-gha-example\failed_scenarios.txt
-
       - name: Read and set failed scenarios as environment variable
         run: |
           $failedScenarios = Get-Content "${{ runner.workspace }}\failed_scenarios.txt" -Raw
@@ -131,7 +125,13 @@ jobs:
       - name: Use failed scenarios
         run: |
           Write-Host "The following scenarios failed: $env:FAILED_SCENARIOS"
-        
+
+      - name: Save failed scenarios as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-scenarios
+          path: C:\actions-runner\_work\cycle-gha-example\failed_scenarios.txt
+          
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -143,7 +143,7 @@ jobs:
   
   scale-down-instance:
     # This makes sure that the scale set instance is deallocated even if the Cycle test(s) fail.
-    if: always()
+    #if: always()
     needs: run-cycle-tests
     runs-on: ubuntu-latest
     steps:
