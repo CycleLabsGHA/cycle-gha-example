@@ -38,7 +38,7 @@ jobs:
     steps:
       
       - name: Set Environment Variable
-        run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $GITHUB_ENV
+        run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $env:GITHUB_ENV
         
       - name: Use the Environment Variable
         run: echo "Running Cycle tests using the $TEST_AUTOMATION_CI_ENVIRONMENT environment"
@@ -83,7 +83,7 @@ jobs:
             $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
             # Mask the secret value in logs
             echo "::add-mask::$secret_value"
-            echo "$secret=$secret_value" >> $Env:GITHUB_ENV
+            echo "$secret=$secret_value" >> $env:GITHUB_ENV
           }
         shell: powershell
         
@@ -109,6 +109,8 @@ jobs:
         run: |
           Write-Host "Contents of the test logs:"
           Get-Content "${{ runner.workspace }}\test_logs.txt"
+          Write-Host "Contents of failed scenarios"
+          Get-Content "${{ runner.workspace }}\failed_scenarios.txt"
         
       - name: Parse Cycle log file for failed scenarios
         run: |
@@ -119,7 +121,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: failed-scenarios
-          path: "${{ runner.workspace }}\failed_scenarios.txt"
+          path: C:\actions-runner\_work\cycle-gha-example\failed_scenarios.txt
 
       - name: Read and set failed scenarios as environment variable
         run: |
