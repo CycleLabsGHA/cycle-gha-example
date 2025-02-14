@@ -107,13 +107,9 @@ jobs:
         
       - name: Parse Cycle log file for failed scenarios
         run: |
+          # Scrape the Cycle CLI output for tests that ran for scenarios that Failed (by using [Fail]). Right now I have it set to [Pass] to create mock data.
           $failedScenarios = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match "Scenario: .* \[Pass\]" }
           $failedScenarios | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
-
-      - name: Output Cycle test logs in pipeline
-        run: |
-          Write-Host "Contents of failed scenarios"
-          Get-Content "${{ runner.workspace }}\failed_scenarios.txt"
 
       - name: Read and parse failed scenarios
         run: |
