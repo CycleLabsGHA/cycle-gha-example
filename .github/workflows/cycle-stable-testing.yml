@@ -104,6 +104,11 @@ jobs:
         
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+
+      - name: Output Cycle test logs in pipeline
+        run: |
+          Write-Host "Contents of the test logs:"
+          Get-Content "${{ runner.workspace }}\test_logs.txt"
         
       - name: Parse Cycle log file for failed scenarios
         run: |
