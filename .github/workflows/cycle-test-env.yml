@@ -152,6 +152,75 @@ jobs:
           # Read environment assignment value (no need to reassign it)
           Write-Host "Environment Assignment: ${{ env.ENVIRONMENT_ASSIGNMENT }}"
 
+      - name: Parse logs for data extraction
+        run: |
+          $summary = 'Base Report'
+          $executionId = ''
+          $scenariosPassed = 0
+          $scenariosFailed = 0
+          $totalScenarios = 0
+          $passRate = 0.0
+          
+          $logFile = "${{ runner.workspace }}\test_logs.txt"  # Replace with your actual log file path
+          if (Test-Path $logFile) {
+              # Read all lines from the log file
+              $lines = Get-Content $logFile
+              $foundExecutionId = $false
+              $foundFooter = $false
+          
+              $executionIdPattern = '^(.*) - Execution ID (.*)$'
+              $scenariosFailedPattern = 'Scenarios failed: ([0-9]+)'
+              $totalScenariosPattern = 'Scenarios executed: ([0-9]+)'
+          
+              $sb = New-Object System.Text.StringBuilder
+          
+              foreach ($line in $lines) {
+                  if (-not $foundExecutionId) {
+                      # Try to match execution ID pattern
+                      if ($line -match $executionIdPattern) {
+                          $executionId = $matches[2]
+                          $foundExecutionId = $true
+                      }
+                  } elseif (-not $foundFooter -and $line -match '\s*===== Summary =====\s*') {
+                      # Footer found
+                      $foundFooter = $true
+                  }
+          
+                  if ($foundFooter) {
+                      # Match failed scenarios
+                      if ($line -match $scenariosFailedPattern) {
+                          $scenariosFailed = [int]$matches[1]
+                      } elseif ($line -match $totalScenariosPattern) {
+                          $totalScenarios = [int]$matches[1]
+                      }
+                      # Append the line to the summary
+                      $sb.AppendLine($line) | Out-Null
+                  }
+              }
+          
+              if ($foundFooter -and $sb.Length -gt 0) {
+                  $maxLength = 3000 - 6  # Adjust for the character limit with backticks
+                  if ($sb.Length -gt $maxLength) {
+                      $sb.Length = $maxLength
+                  }
+          
+                  $summary = "```${sb.ToString()}```"
+                  $scenariosPassed = $totalScenarios - $scenariosFailed
+          
+                  if ($totalScenarios -gt 0) {
+                      # Calculate pass rate
+                      $passRate = [math]::Round(($scenariosPassed / $totalScenarios * 1000) / 10, 1)
+                  }
+              }
+          }
+          
+          Write-Host "Summary: $summary"
+          Write-Host "Execution ID: $executionId"
+          Write-Host "Scenarios Passed: $scenariosPassed"
+          Write-Host "Scenarios Failed: $scenariosFailed"
+          Write-Host "Total Scenarios: $totalScenarios"
+          Write-Host "Pass Rate: $passRate%"
+
       - name: Save failed scenarios as artifact
         uses: actions/upload-artifact@v4
         with:
