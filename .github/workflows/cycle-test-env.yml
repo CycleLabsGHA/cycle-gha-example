@@ -1,4 +1,4 @@
-name: Testing Cycle 2.20 STABLE
+name: Testing log parsing for ENVIRONMENT and FAILED Scenarios
 
 on:
   #push:
@@ -14,7 +14,7 @@ on:
         default: "features/java-app-test.feature"
   schedule:
     #- cron: "0 16 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
-    - cron: "0 7,19 * * *"
+    #- cron: "0 7,19 * * *"
 
 jobs:
 
