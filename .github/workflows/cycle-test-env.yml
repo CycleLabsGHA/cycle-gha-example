@@ -1,1 +1,197 @@
+name: Testing Cycle 2.20 STABLE
 
+on:
+  #push:
+  workflow_dispatch:
+    inputs:
+      TEST_AUTOMATION_CI_ENVIRONMENT:
+        description: "Specify the test environment (e.g., wms1, wms2, wms3)"
+        required: false
+        default: "wms1"
+      feature_file:
+        description: "Feature file to run"
+        required: false
+        default: "features/java-app-test.feature"
+  schedule:
+    #- cron: "0 16 * * 1-5"   # Run M-F at 8AM EST (GHA is based on UTC)
+    - cron: "0 7,19 * * *"
+
+jobs:
+
+  scale-up-instance:
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1 >/dev/null 2>&1
+
+  run-cycle-tests:
+    needs: scale-up-instance
+    runs-on: self-hosted
+    timeout-minutes: 10  # Set the timeout to 10 minutes
+    steps:
+      
+      - name: Set Environment Variable
+        run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $env:GITHUB_ENV
+        
+      - name: Use the Environment Variable
+        run: echo "Running Cycle tests using the $TEST_AUTOMATION_CI_ENVIRONMENT environment"
+
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+            
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+
+      - run: echo "🖥️ This job is now running on a self-hosted Windows runner named ${{ runner.name	}} !"
+
+      - name: Show Runner OS
+        run: echo "The operating system of the runner is ${{ runner.os }}"
+        
+      - name: Show Runner Workspace
+        run: echo "The workspace of the runner is ${{ runner.workspace }}"
+      
+      - name: Install Azure CLI if not installed
+        run: |
+          # Check if Azure CLI is installed
+          if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+              Write-Host "Azure CLI not found. Installing..."
+              Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile AzureCLI.msi
+              Start-Process msiexec.exe -ArgumentList '/I AzureCLI.msi /quiet /norestart' -NoNewWindow -Wait
+              Write-Host "Azure CLI installed successfully."
+          } else {
+              Write-Host "Azure CLI is already installed."
+          }
+        shell: powershell
+
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Get specific secrets and set environment variables
+        run: |
+          $secret_names = @("PW-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
+          foreach ($secret in $secret_names) {
+            $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
+            # Mask the secret value in logs
+            echo "::add-mask::$secret_value"
+            echo "$secret=$secret_value" >> $env:GITHUB_ENV
+          }
+        shell: powershell
+        
+      - name: List files in the repository
+        run: Get-ChildItem -Path ${{ github.workspace }}
+      
+      - name: Get Cycle-CLI version
+        run: cycle-cli.exe -v
+      
+      - name: Cycle CLI - Run API Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+      
+      - name: Cycle CLI - Run Browser Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        
+      - name: Cycle CLI - Run Java Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser ${{ inputs.feature_file }}  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        
+      - name: Cycle CLI - Run Connection Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        
+      - name: Parse Cycle log file for failed scenarios + grabbing environment
+        run: |
+          # Scrape the Cycle CLI output for tests that failed ([Fail])
+          $failedScenarios = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match "Scenario: .* \[Fail\]" }
+
+          # Ensure the file is created even if there are no failed scenarios
+          if (-not $failedScenarios) {
+              "No failed scenarios found" | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
+              echo "FAILED_SCENARIOS=No failed scenarios found" >> $env:GITHUB_ENV
+          } else {
+              $failedScenarios | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
+              echo "FAILED_SCENARIOS=$($failedScenarios -join "`n")" >> $env:GITHUB_ENV
+          }
+
+          # Scrape the Cycle CLI output for environment value - just the FIRST occurrence.
+          $logContent = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match 'And I verify text .* is not equal to ""' } | Select-Object -First 1
+
+          Write-Host "DEBUG: Raw log content: '$logContent'"
+
+          # Clean the log: remove timestamp and excessive spaces
+          $cleanLog = $logContent -replace '^\S+\s+', '' -replace '\s+', ' '  # Normalize spaces
+          Write-Host "DEBUG: Cleaned log content: '$cleanLog'"
+
+          # Adjusted regex pattern to capture the environment name after "And I verify text"
+          if ($cleanLog -match 'And I verify text (\S+)') {
+              $environmentName = $matches[1].Trim()  # Capture the environment name
+              Write-Host "DEBUG: Extracted Environment Name: $environmentName"
+          } else {
+              Write-Host "DEBUG: Environment name was not found using regex."
+          }
+
+          # Ensure it is available for later steps in GitHub Actions
+          if ($environmentName) {
+              echo "ENVIRONMENT_ASSIGNMENT=$environmentName" >> $env:GITHUB_ENV
+              Write-Host "DEBUG: ENVIRONMENT_ASSIGNMENT set in GitHub Actions."
+          } else {
+              Write-Host "No environment name found in log."
+          } 
+
+      - name: Read and parse failed scenarios + environment settings
+        run: |
+          $failedScenarios = Get-Content "${{ runner.workspace }}\failed_scenarios.txt" -Raw
+          Write-Host "The following scenarios failed:`n $failedScenarios"
+
+          # Read environment assignment value (no need to reassign it)
+          Write-Host "Environment Assignment: ${{ env.ENVIRONMENT_ASSIGNMENT }}"
+
+      - name: Save failed scenarios as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-scenarios
+          path: C:\actions-runner\_work\cycle-gha-example\failed_scenarios.txt
+          
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cycle-reports
+          path: C:\actions-runner\_work\cycle-gha-example\cycle-gha-example\featureReports\
+      
+      - name: Cleanup Cycle output logs after run
+        if: always()
+        run: |
+          Write-Host "Removing Cycle output logs after pipeline execution."
+          if (Test-Path "${{ runner.workspace }}\test_logs.txt") {
+            Remove-Item -Path "${{ runner.workspace }}\test_logs.txt"
+          } else {
+            Write-Host "Skipping delete. File not found."
+          }
+
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+  
+  scale-down-instance:
+    # This makes sure that the scale set instance is deallocated even if the Cycle test(s) fail.
+    #if: always()
+    needs: run-cycle-tests
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 0 >/dev/null 2>&1
+        
+      - name: Make sure the instance has been deallocated
+        run: |
+          az vmss list-instances --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --output table
