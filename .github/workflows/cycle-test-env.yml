@@ -153,7 +153,7 @@ jobs:
           $passRate = 0.0
 
           # Path to the log file
-          $logFile = "c:\test_logs.txt"
+          $logFile = "${{ runner.workspace }}\test_logs.txt"
 
           Write-Host "INFO: Starting the log parsing process..."
 
