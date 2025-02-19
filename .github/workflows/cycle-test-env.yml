@@ -143,6 +143,123 @@ jobs:
           } else {
               Write-Host "No environment name found in log."
           } 
+      - name: Read and parse logs to generate proper email summary
+        run: |
+          $summary = 'Base Report'
+          $executionId = ''
+          $scenariosPassed = 0
+          $scenariosFailed = 0
+          $totalScenarios = 0
+          $passRate = 0.0
+
+          # Path to the log file
+          $logFile = "c:\test_logs.txt"
+
+          Write-Host "INFO: Starting the log parsing process..."
+
+          # Check if the log file exists
+          if (Test-Path $logFile) {
+              Write-Host "INFO: Log file found, starting to read lines..."
+
+              # Count total lines for progress tracking
+              $totalLines = (Get-Content $logFile).Count
+              Write-Host "INFO: Total lines in log file: $totalLines"
+
+              # Use StreamReader for efficient line-by-line reading
+              $reader = [System.IO.StreamReader]::new($logFile)
+              $foundExecutionId = $false
+              $foundFooter = $false
+
+              # Define patterns for matching in the log
+              $executionIdPattern = '^(.*) - Execution ID (.*)$'
+              $scenariosFailedPattern = 'Scenarios failed: ([0-9]+)'
+              $totalScenariosPattern = 'Scenarios executed: ([0-9]+)'
+
+              # Use StringBuilder for efficient string operations
+              $summaryContent = New-Object System.Text.StringBuilder
+              $lineNumber = 0  # Line counter
+
+              Write-Host "INFO: Parsing log lines..."
+
+              # Process the file line by line
+              while ($reader.Peek() -ge 0) {
+                  $line = $reader.ReadLine()
+                  $lineNumber++
+
+                  # Update progress bar
+                  $progressPercent = [math]::Round(($lineNumber / $totalLines) * 100, 1)
+                  Write-Progress -Activity "Parsing log file..." -Status "Processing line ${lineNumber} of ${totalLines}" -PercentComplete $progressPercent
+
+                  if (-not $foundExecutionId) {
+                      # Try to match execution ID pattern
+                      if ($line -match $executionIdPattern) {
+                          $executionId = $matches[2]
+                          $foundExecutionId = $true
+                          Write-Host "INFO: Execution ID found on line ${lineNumber}: ${executionId}"
+                      }
+                  } elseif (-not $foundFooter -and $line -match '\s*===== Summary =====\s*') {
+                      # Footer found, set flag
+                      $foundFooter = $true
+                      Write-Host "INFO: Footer section '===== Summary =====' found on line ${lineNumber}."
+                  }
+
+                  if ($foundFooter) {
+                      # Match failed scenarios
+                      if ($line -match $scenariosFailedPattern) {
+                          $scenariosFailed = [int]$matches[1]
+                          Write-Host "INFO: Found scenarios failed on line ${lineNumber}: ${scenariosFailed}"
+                      } elseif ($line -match $totalScenariosPattern) {
+                          $totalScenarios = [int]$matches[1]
+                          Write-Host "INFO: Found total scenarios executed on line ${lineNumber}: ${totalScenarios}"
+                      }
+                      # Append the line to the summary content
+                      $summaryContent.AppendLine($line) | Out-Null
+                  }
+              }
+
+              $reader.Close() # Close StreamReader when done
+
+              # If footer found and summary content is not empty, process the summary
+              if ($foundFooter -and $summaryContent.Length -gt 0) {
+                  Write-Host "INFO: Footer found and summary content is not empty. Processing summary..."
+
+                  $maxLength = 3000 - 6  # Adjust for character limit with backticks
+                  if ($summaryContent.Length -gt $maxLength) {
+                      $summaryContent.Length = $maxLength
+                      Write-Host "INFO: Summary content truncated to max length of ${maxLength} characters."
+                  }
+
+                  $summary = "${summaryContent.ToString()}"
+                  $scenariosPassed = $totalScenarios - $scenariosFailed
+
+                  if ($totalScenarios -gt 0) {
+                      # Calculate pass rate
+                      $passRate = [math]::Round(($scenariosPassed / $totalScenarios * 1000) / 10, 1)
+                      Write-Host "INFO: Pass rate calculated: ${passRate}%"
+                  }
+              }
+
+              Write-Host "INFO: Log parsing completed. Processed ${lineNumber} lines."
+              Write-Progress -Activity "Parsing log file..." -Completed
+          } else {
+              Write-Host "ERROR: Log file does not exist at ${logFile}."
+          }
+
+          # Output summary and details
+          Write-Host "Summary: ${summary}"
+          Write-Host "Execution ID: ${executionId}"
+          Write-Host "Scenarios Passed: ${scenariosPassed}"
+          Write-Host "Scenarios Failed: ${scenariosFailed}"
+          Write-Host "Total Scenarios: ${totalScenarios}"
+          Write-Host "Pass Rate: ${passRate}%"
+
+          # Export variables to GITHUB_ENV so they can be used in later steps
+          "SUMMARY=$summary" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "EXECUTION_ID=$executionId" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "SCENARIOS_PASSED=$scenariosPassed" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "SCENARIOS_FAILED=$scenariosFailed" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "TOTAL_SCENARIOS=$totalScenarios" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "PASS_RATE=$passRate%" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Read and parse failed scenarios + environment settings
         run: |
@@ -152,74 +269,13 @@ jobs:
           # Read environment assignment value (no need to reassign it)
           Write-Host "Environment Assignment: ${{ env.ENVIRONMENT_ASSIGNMENT }}"
 
-      - name: Parse logs for data extraction
-        run: |
-          $summary = 'Base Report'
-          $executionId = ''
-          $scenariosPassed = 0
-          $scenariosFailed = 0
-          $totalScenarios = 0
-          $passRate = 0.0
-          
-          $logFile = "${{ runner.workspace }}\test_logs.txt"  # Replace with your actual log file path
-          if (Test-Path $logFile) {
-              # Read all lines from the log file
-              $lines = Get-Content $logFile
-              $foundExecutionId = $false
-              $foundFooter = $false
-          
-              $executionIdPattern = '^(.*) - Execution ID (.*)$'
-              $scenariosFailedPattern = 'Scenarios failed: ([0-9]+)'
-              $totalScenariosPattern = 'Scenarios executed: ([0-9]+)'
-          
-              $sb = New-Object System.Text.StringBuilder
-          
-              foreach ($line in $lines) {
-                  if (-not $foundExecutionId) {
-                      # Try to match execution ID pattern
-                      if ($line -match $executionIdPattern) {
-                          $executionId = $matches[2]
-                          $foundExecutionId = $true
-                      }
-                  } elseif (-not $foundFooter -and $line -match '\s*===== Summary =====\s*') {
-                      # Footer found
-                      $foundFooter = $true
-                  }
-          
-                  if ($foundFooter) {
-                      # Match failed scenarios
-                      if ($line -match $scenariosFailedPattern) {
-                          $scenariosFailed = [int]$matches[1]
-                      } elseif ($line -match $totalScenariosPattern) {
-                          $totalScenarios = [int]$matches[1]
-                      }
-                      # Append the line to the summary
-                      $sb.AppendLine($line) | Out-Null
-                  }
-              }
-          
-              if ($foundFooter -and $sb.Length -gt 0) {
-                  $maxLength = 3000 - 6  # Adjust for the character limit with backticks
-                  if ($sb.Length -gt $maxLength) {
-                      $sb.Length = $maxLength
-                  }
-          
-                  $summary = "```${sb.ToString()}```"
-                  $scenariosPassed = $totalScenarios - $scenariosFailed
-          
-                  if ($totalScenarios -gt 0) {
-                      # Calculate pass rate
-                      $passRate = [math]::Round(($scenariosPassed / $totalScenarios * 1000) / 10, 1)
-                  }
-              }
-          }
-          
-          Write-Host "Summary: $summary"
-          Write-Host "Execution ID: $executionId"
-          Write-Host "Scenarios Passed: $scenariosPassed"
-          Write-Host "Scenarios Failed: $scenariosFailed"
-          Write-Host "Total Scenarios: $totalScenarios"
-          Write-Host "Pass Rate: $passRate%"
+          # Printing out log data to make sure its outputting properly
+          Write-Host "CYCLE TEST SUMMARY: ${{ env.SUMMARY }}"
+          Write-Host "EXECUTION_ID: ${{ env.EXECUTION_ID }}"
+          Write-Host "SCENARIOS_PASSED: ${{ env.SCENARIOS_PASSED }}"
+          Write-Host "SCENARIOS_FAILED: ${{ env.SCENARIOS_FAILED }}"
+          Write-Host "TOTAL_SCENARIOS: ${{ env.TOTAL_SCENARIOS }}"
+          Write-Host "PASS_RATE: ${{ env.PASS_RATE }}"
 
       - name: Save failed scenarios as artifact
         uses: actions/upload-artifact@v4
