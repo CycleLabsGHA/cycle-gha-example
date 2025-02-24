@@ -78,7 +78,7 @@ jobs:
           
       - name: Get specific secrets and set environment variables
         run: |
-          $secret_names = @("PW-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
+          $secret_names = @("PW-AZURESQL", "UN-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
           foreach ($secret in $secret_names) {
             $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
             # Mask the secret value in logs
