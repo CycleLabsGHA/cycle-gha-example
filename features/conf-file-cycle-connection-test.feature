@@ -39,7 +39,7 @@ Then I verify SQL status is 0
 
 @db
 Scenario: Azure SQL Server - Cycle CI
-When I connect to Microsoft SQLServer database at "cyclesql4782.database.windows.net:1433;Database=cycle" logged in as "CloudSAe82b3f46" with password $pw_azuresql
+When I connect to Microsoft SQLServer database at "cyclesql4782.database.windows.net:1433;Database=cycle" logged in as $un_azuresql with password $pw_azuresql
 	And I execute SQL "SELECT TOP 1 [LastName],[FirstName],[Address],[City] FROM [dbo].[Persons]"
 Then I verify SQL status is 0
 
