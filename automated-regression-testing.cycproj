@@ -18,7 +18,7 @@
     "SSLValidation" : "Default",
     "KeyMappingFile" : null,
     "LocalReportCustomPath" : null,
-    "VariableBlackListEnabled" : false,
+    "VariableBlackListEnabled" : true,
     "GroupTestFailureStrategy" : "ALL_TESTS",
     "ControlVisPaste" : true,
     "DefaultWithinTerminal" : 100,
@@ -42,9 +42,9 @@
     "PlaylistFailureStrategy" : "ALL_TESTS",
     "CloudTenantName" : "",
     "CloudGrpcPort" : "",
-    "VariableBlackList" : [ ],
+    "VariableBlackList" : [ "pw_oracle_db", "pw_sql_db", "pw_db2", "pw_mysql", "pw_telnet", "pw_openssh", "pw_moca", "pw_azuresql", "un_azuresql" ],
     "CloudClientId" : "",
-    "VariableBlackListMask" : "********",
+    "VariableBlackListMask" : "***",
     "SaveMatchedImages" : false
   }
 }
