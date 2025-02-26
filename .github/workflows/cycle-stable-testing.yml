@@ -288,7 +288,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cycle-reports
-          path: ${{ runner.workspace }}\featureReports\
+          path: ${{ runner.workspace }}\cycle-gha-example\featureReports\
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
   
