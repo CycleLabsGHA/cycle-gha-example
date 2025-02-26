@@ -36,7 +36,7 @@
     "RemoteWebDriverHeadlessKey" : true,
     "WaitDurationBeforeRestart" : 5000,
     "MinimizeCycleDuringTest" : false,
-    "LocalReport" : "Default",
+    "LocalReport" : "Detailed",
     "TerminalSteadyStateDuration" : 1000,
     "SkipMocaCertValidation" : false,
     "PlaylistFailureStrategy" : "ALL_TESTS",
