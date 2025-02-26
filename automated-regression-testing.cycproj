@@ -42,7 +42,7 @@
     "PlaylistFailureStrategy" : "ALL_TESTS",
     "CloudTenantName" : "",
     "CloudGrpcPort" : "",
-    "VariableBlackList" : [ "pw_oracle_db", "pw_sql_db", "pw_db2", "pw_mysql", "pw_telnet", "pw_openssh", "pw_moca", "pw_azuresql", "un_azuresql" ],
+    "VariableBlackList" : [ "$pw_azuresql", "$pw_db2", "$pw_moca", "$pw_mysql", "$pw_openssh", "$pw_telnet", "$pw_sql_db", "$pw_sql14_db", "$un_azuresql" ],
     "CloudClientId" : "",
     "VariableBlackListMask" : "***",
     "SaveMatchedImages" : false
