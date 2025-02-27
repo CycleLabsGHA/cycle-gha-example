@@ -88,7 +88,6 @@ jobs:
       #   shell: powershell
 
       - name: Retrieve Secrets from Azure Key Vault
-        shell: pwsh
         run: |
           # Define secret names
           $secretNames = @('PW-AZURESQL', 'PW-DB2', 'PW-MOCA', 'PW-MYSQL', 'PW-OPENSSH', 'PW-ORACLE-DB', 'PW-SQL-DB', 'PW-SQL14-DB', 'PW-TELNET', 'UN-AZURESQL')
@@ -113,7 +112,6 @@ jobs:
           }
 
       - name: Save secrets as environment variables
-        shell: pwsh
         run: |
           Get-Content secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
