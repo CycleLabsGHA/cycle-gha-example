@@ -76,16 +76,49 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           
-      - name: Get specific secrets and set environment variables
+      # - name: Get specific secrets and set environment variables
+      #   run: |
+      #     $secret_names = @("PW-AZURESQL", "UN-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
+      #     foreach ($secret in $secret_names) {
+      #       $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
+      #       # Mask the secret value in logs
+      #       echo "::add-mask::$secret_value"
+      #       echo "$secret=$secret_value" >> $env:GITHUB_ENV
+      #     }
+      #   shell: powershell
+
+      - name: Retrieve Secrets from Azure Key Vault
+        shell: pwsh
         run: |
-          $secret_names = @("PW-AZURESQL", "UN-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
-          foreach ($secret in $secret_names) {
-            $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
+          # Define secret names
+          $secretNames = @('PW-AZURESQL', 'PW-DB2', 'PW-MOCA', 'PW-MYSQL', 'PW-OPENSSH', 'PW-ORACLE-DB', 'PW-SQL-DB', 'PW-SQL14-DB', 'PW-TELNET', 'UN-AZURESQL')
+
+          # Create dotenv file
+          $envFile = "secrets.env"
+          New-Item -Path $envFile -ItemType File -Force
+
+          foreach ($secretName in $secretNames) {
+            # Convert secret name to a valid format (replace '-' with '_')
+            $safeSecretName = $secretName -replace '-', '_'
+
+            # Retrieve secret value from Azure Key Vault
+            $secretValue = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secretName --query 'value' -o tsv
+
+            # Add to dotenv file
+            Add-Content -Path $envFile -Value "$safeSecretName=$secretValue"
+
             # Mask the secret value in logs
-            echo "::add-mask::$secret_value"
-            echo "$secret=$secret_value" >> $env:GITHUB_ENV
+            echo "::add-mask::$secretValue"
+            Write-Output "Retrieved secret for $safeSecretName"
           }
-        shell: powershell
+
+      - name: Save secrets as environment variables
+        shell: pwsh
+        run: |
+          Get-Content secrets.env | ForEach-Object {
+            $name, $value = $_ -split '=', 2
+            echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
         
       - name: List files in the repository
         run: Get-ChildItem -Path ${{ github.workspace }}
