@@ -10,18 +10,28 @@
     "SenderEmailAddress" : "",
     "StoredCredentials" : [ {
       "credentialsName" : "Cycleautomation",
-      "username" : "norman.stypczynski@yahoo.com",
-      "password" : "camindaweeds"
+      "username" : "${USERNAME}",
+      "password" : "${PASSWORD}"
     },
     {
       "credentialsName" : "MOCA2020",
-      "username" : "CYCLEUSER08",
-      "password" : "CYCLEUSER#08"
+      "username" : "${CYCLEUSER08}",
+      "password" : "${CYCLEUSER08_PW}"
     },
     {
-      "credentialsName" : "Testme",
-      "username" : "testme",
-      "password" : "testme"
+      "credentialsName" : "ENV1",
+      "username" : "${ENV1_UN}",
+      "password" : "${ENV1_PW}"
+    },
+    {
+      "credentialsName" : "ENV2",
+      "username" : "${ENV2_UN}",
+      "password" : "${ENV2_PW}"
+    },
+    {
+      "credentialsName" : "ENV3",
+      "username" : "${ENV3_UN}",
+      "password" : "${ENV3_PW}"
     } ],
     "SendEmailSummary" : false,
     "CloseBrowserAfterScenario" : true,
