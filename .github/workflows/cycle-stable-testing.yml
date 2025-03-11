@@ -131,7 +131,7 @@ jobs:
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         
       - name: Cycle CLI - Run Java Test
-        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser ${{ inputs.feature_file }}  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
