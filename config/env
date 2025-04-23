@@ -8,7 +8,6 @@
 #
 # key=
 # 
-
 # The HTTP_PROXY, HTTPS_PROXY, and NO_PROXY variables configure Cycle to use a proxy
 # If a proxy is set, NO_PROXY should include 'localhost'.
 #
@@ -19,15 +18,21 @@
 # HTTPS_PROXY=https://somewhere.com
 # NO_PROXY=localhost
 #
-HTTP_PROXY=
-HTTPS_PROXY=
-NO_PROXY=
-
+# HTTP_PROXY=
+# HTTPS_PROXY=
+# NO_PROXY=
 # Configuration for required step drivers
 # uncomment these and set true/false accordingly if you want this set across all projects
-# CYCLE_JAVA_APP_DRIVER_SERVICE_ENABLED=false
-# CYCLE_WEB_DRIVER_SERVICE_ENABLED=false
+CYCLE_JAVA_APP_DRIVER_SERVICE_ENABLED=true
+# CYCLE_WEB_DRIVER_SERVICE_ENABLED=true
 # CYCLE_SAP_GUI_DRIVER_SERVICE_ENABLED=false
-
-
-CYCLE_LOCAL_RESULT_SERVICE_ENABLED=true
+# =========================================================
+# Configuration for Honeycomb data gathering
+# =========================================================
+# CYCLE_HONEYCOMB_API_KEY=AqCxpWUyzNNWttYhRolwWB
+# =========================================================
+# Configuration for local results service
+# =========================================================
+CYCLE_LOCAL_RESULT_SERVICE_PORT=0
+#CYCLE_LOCAL_RESULT_SERVICE_JOURNAL_MODE=WAL
+JAVA_OPTS=-Djava.net.preferIPv4Stack=true
