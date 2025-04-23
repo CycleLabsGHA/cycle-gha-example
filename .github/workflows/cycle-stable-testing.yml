@@ -135,7 +135,7 @@ jobs:
           Get-Content -Path "${{ github.workspace }}\config\.env"
       
           # Ensure the destination directory exists
-          $destinationDir = 'C:\Users\Runner\AppData\Roaming\Cycle\config'
+          $destinationDir = 'C:\Users\gha-admin\AppData\Roaming\Cycle\config'
           if (!(Test-Path -Path $destinationDir)) {
               New-Item -ItemType Directory -Path $destinationDir -Force
           }
