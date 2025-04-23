@@ -123,22 +123,22 @@ jobs:
         
           # Print the contents of the .env file
           Write-Output "The .env file from the repository:"
-          Get-Content -Path "${{ runner.workspace }}\\config\\.env"
+          Get-Content -Path "${{ runner.workspace }}\config\.env"
       
           # Ensure the destination directory exists
-          $destinationDir = 'C:\\Users\\agentadmin\\AppData\\Roaming\\Cycle\\config'
+          $destinationDir = 'C:\Users\agentadmin\AppData\Roaming\Cycle\config'
           if (!(Test-Path -Path $destinationDir)) {
               New-Item -ItemType Directory -Path $destinationDir -Force
           }
           Write-Output "Ensuring directory exists for .env file to be placed in."
       
           # Copy the .env file
-          Copy-Item -Path "${{ runner.workspace }}\\config\\.env" -Destination $destinationDir -Force
+          Copy-Item -Path "${{ runner.workspace }}\config\.env" -Destination $destinationDir -Force
           Write-Output "Copying .env file to $destinationDir"
       
           # Print the contents of the .env file in the Cycle directory to confirm move was successful
           Write-Output "The .env file from the Cycle directory:"
-          Get-Content -Path "$destinationDir\\.env"
+          Get-Content -Path "$destinationDir\.env"
       
           # Allow some time for the .env file copy to go through
           Start-Sleep -Seconds 10
