@@ -118,6 +118,10 @@ jobs:
             echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
           }
 
+      - name: Who is my GitHub Actions Runner service running as?
+        run: |
+          Get-WmiObject Win32_Service | Where-Object { $_.Name -like "*actions.runner*" } | Select Name, StartName
+          
       - name: List files in the repository
         run: |
           Get-ChildItem -Path ${{ github.workspace }}
