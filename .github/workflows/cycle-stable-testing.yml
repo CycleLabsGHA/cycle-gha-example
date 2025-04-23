@@ -118,6 +118,9 @@ jobs:
             echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
           }
 
+      - name: List files in the repository
+        run: Get-ChildItem -Path ${{ github.workspace }}
+
       - name: Copy in .env file for Cycle
         run: |
         
@@ -142,9 +145,6 @@ jobs:
       
           # Allow some time for the .env file copy to go through
           Start-Sleep -Seconds 10
-    
-      - name: List files in the repository
-        run: Get-ChildItem -Path ${{ github.workspace }}
       
       - name: Get Cycle-CLI version
         run: cycle-cli.exe -v
