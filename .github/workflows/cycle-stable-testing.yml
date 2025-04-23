@@ -119,14 +119,16 @@ jobs:
           }
 
       - name: List files in the repository
-        run: Get-ChildItem -Path ${{ github.workspace }}
+        run: |
+          Get-ChildItem -Path ${{ github.workspace }}
+          Get-ChildItem -Path "${{ github.workspace }}\config"
 
       - name: Copy in .env file for Cycle
         run: |
         
           # Print the contents of the .env file
           Write-Output "The .env file from the repository:"
-          Get-Content -Path "${{ runner.workspace }}\config\.env"
+          Get-Content -Path "${{ github.workspace }}\config\.env"
       
           # Ensure the destination directory exists
           $destinationDir = 'C:\Users\agentadmin\AppData\Roaming\Cycle\config'
@@ -136,7 +138,7 @@ jobs:
           Write-Output "Ensuring directory exists for .env file to be placed in."
       
           # Copy the .env file
-          Copy-Item -Path "${{ runner.workspace }}\config\.env" -Destination $destinationDir -Force
+          Copy-Item -Path "${{ github.workspace }}\config\.env" -Destination $destinationDir -Force
           Write-Output "Copying .env file to $destinationDir"
       
           # Print the contents of the .env file in the Cycle directory to confirm move was successful
