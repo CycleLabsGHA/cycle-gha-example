@@ -157,16 +157,20 @@ jobs:
       
       - name: Cycle CLI - Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        continue-on-error: true
       
       - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        continue-on-error: true
 
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        continue-on-error: true
 
       - name: Cycle CLI - Run Java Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
-        
+        continue-on-error: true
+
       - name: Parse Cycle log file for failed scenarios + grabbing environment
         run: |
           # Scrape the Cycle CLI output for tests that failed ([Fail])
