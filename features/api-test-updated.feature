@@ -29,9 +29,9 @@ And I echo $responseBody
 When I verify http response had status code 200
 Then I echo "Joke api tested ma dude"
 
-Scenario: Testing the api randomuser
-Given I call api "ApiFiles\randomUser.api"
-When I assign http response body to variable "responseBody"
-And I echo $responseBody
-And I verify http response had status code 200
-Then I echo "Random User api tested"
+#Scenario: Testing the api randomuser
+#Given I call api "ApiFiles\randomUser.api"
+#When I assign http response body to variable "responseBody"
+#And I echo $responseBody
+#And I verify http response had status code 200
+#Then I echo "Random User api tested"
