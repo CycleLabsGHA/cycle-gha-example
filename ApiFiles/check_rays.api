@@ -1,0 +1,14 @@
+name: "Get ESPN MLB Scoreboard"
+params:
+    "":
+url: https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard
+method: GET
+headers:
+    Accept: "application/json"
+authentication:
+    bearer:
+        token: ""
+    type: bearer
+body:
+    bodytype: JSON
+    contents: |4+
