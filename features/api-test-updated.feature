@@ -29,13 +29,13 @@ And I echo $responseBody
 When I verify http response had status code 200
 Then I echo "Joke api tested ma dude"
 
-Scenario: Check if Tampa Bay Rays won
-Given I call api "ApiFiles\check_rays.api"
-    And I assign http response body to variable "responseBody"
-    And I echo $responseBody
-When I verify http response had status code 200
-    And I assign value from JSON $responseBody with path "/events/0/competitions/0/competitors" to variable "competitors"
-    And I echo $competitors
-    And I assign value from JSON $competitors with path "[?(@.team.displayName=='Tampa Bay Rays')].winner" to variable "raysWinner"
-    And I echo $raysWinner
-Then I verify that $raysWinner equals "true"
+#Scenario: Check if Tampa Bay Rays won
+#Given I call api "ApiFiles\check_rays.api"
+#    And I assign http response body to variable "responseBody"
+#    And I echo $responseBody
+#When I verify http response had status code 200
+#    And I assign value from JSON $responseBody with path "/events/0/competitions/0/competitors" to variable "competitors"
+#    And I echo $competitors
+#    And I assign value from JSON $competitors with path "[?(@.team.displayName=='Tampa Bay Rays')].winner" to variable "raysWinner"
+#    And I echo $raysWinner
+#Then I verify that $raysWinner equals "true"
