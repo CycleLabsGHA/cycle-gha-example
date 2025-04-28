@@ -1,0 +1,14 @@
+name: "Get Random Activity"
+params:
+    type: "recreational"
+url: https://www.boredapi.com/api/activity
+method: GET
+headers:
+    Accept: "application/json"
+authentication:
+    bearer:
+        token: ""
+    type: bearer
+body:
+    bodytype: JSON
+    contents: |4+
