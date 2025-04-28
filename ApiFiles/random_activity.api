@@ -1,7 +1,7 @@
-name: "Get Random Activity"
+name: "Get ESPN MLB Scoreboard"
 params:
-    type: "recreational"
-url: https://www.boredapi.com/api/activity
+    "":
+url: https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard
 method: GET
 headers:
     Accept: "application/json"
