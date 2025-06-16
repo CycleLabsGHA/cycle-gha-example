@@ -90,7 +90,7 @@ jobs:
       - name: Retrieve Secrets from Azure Key Vault
         run: |
           # Define secret names
-          $secretNames = @('PW-AZURESQL', 'PW-DB2', 'PW-MOCA', 'PW-MYSQL', 'PW-OPENSSH', 'PW-ORACLE-DB', 'PW-SQL-DB', 'PW-SQL14-DB', 'PW-TELNET', 'UN-AZURESQL', 'CN-AZUREDSQL')
+          $secretNames = @('PW-AZURESQL', 'PW-DB2', 'PW-MOCA', 'PW-MYSQL', 'PW-OPENSSH', 'PW-ORACLE-DB', 'PW-SQL-DB', 'PW-SQL14-DB', 'PW-TELNET', 'UN-AZURESQL', 'CN-AZURESQL')
 
           # Create dotenv file
           $envFile = "secrets.env"
