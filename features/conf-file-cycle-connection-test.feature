@@ -39,8 +39,8 @@ Then I verify SQL status is 0
 
 @db
 Scenario: Azure SQL Server - Cycle CI
-When I connect to Microsoft SQLServer database at "cyclesql4782.database.windows.net:1433;Database=cycle" logged in as $un_azuresql with password $pw_azuresql
-	And I execute SQL "SELECT TOP 1 [LastName],[FirstName],[Address],[City] FROM [dbo].[Persons]"
+When I connect to Microsoft SQLServer database at $cs_azuresql logged in as $un_azuresql with password $pw_azuresql
+	And I execute SQL "SELECT TOP 1 [execution_id],[cycle_user],[cycle_version] FROM [dbo].[cycle_test_execution]
 Then I verify SQL status is 0
 
 @db
