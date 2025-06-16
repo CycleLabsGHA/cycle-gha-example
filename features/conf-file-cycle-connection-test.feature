@@ -40,7 +40,7 @@ Then I verify SQL status is 0
 @db
 Scenario: Azure SQL Server - Cycle CI
 When I connect to Microsoft SQLServer database at $cs_azuresql logged in as $un_azuresql with password $pw_azuresql
-	And I execute SQL "SELECT TOP 1 [execution_id],[cycle_user],[cycle_version] FROM [dbo].[cycle_test_execution]
+	And I execute SQL "SELECT TOP 1 [execution_id],[cycle_user],[cycle_version] FROM [dbo].[cycle_test_execution]"
 Then I verify SQL status is 0
 
 @db
@@ -54,22 +54,6 @@ Scenario: MySQL - Cycle CI
 When I connect to MySQL database "employees" at "mysql57.ci.cyclelabs.io" port 3306 logged in as "employees" with password $pw_mysql
 	And I execute SQL "select * from departments where dept_name = 'Development';"
 Then I verify SQL status is 0
-
-#@db
-#Scenario: SQL Server - Cycle CI - 2014SP3 TLS1_2
-#When I connect to Microsoft SQLServer database at "mssql2014sp3.ci.cyclelabs.io:1433;sslProtocol=TLSv1.2" logged in as "ciadmin" with password "f,QC6x9!kH_c4dx;@m*E"
-#And I execute SQL "SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID"
-#And I assign row 0 column "encrypt_option" to variable "encrypt_option"
-#And I echo $encrypt_option
-#And I verify text $encrypt_option is equal to "TRUE" ignoring case
-
-# @db
-# Scenario: SQL Server - Cycle CI - 2014SP3 TLS_DEFAULT
-# When I connect to Microsoft SQLServer database at "mssql2014sp3.ci.cyclelabs.io:1433" logged in as "ciadmin" with password $pw_sql14_db
-# And I execute SQL "SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID"
-# And I assign row 0 column "encrypt_option" to variable "encrypt_option"
-# And I echo $encrypt_option
-# And I verify text $encrypt_option is equal to "TRUE" ignoring case
 
 @term
 Scenario: Telnet/Linux - Cycle CI
@@ -100,45 +84,6 @@ When I execute MOCA command "[update les_mls_cat set mls_text = 'Larry' where ml
 Then I reset terminal device "RDT001" in warehouse "WMD1"
 	And I reset terminal device "SSH001" in warehouse "WMD1"
 	And I close MOCA connection
-
-# LEFT BY SERVER UNEDITED FOR HISTORICAL ACCURACY
-# @rf
-# Scenario: JDA RF - TELNET - Cycle CI 2019.1.1
-# Given I open terminal connected to "cycl-pdbd-wm202111-rf.wm-servers.com:46062" for terminal "RDT001" sized to 16 lines and 20 columns
-# If I see "Terminal ID:" in terminal within 30 seconds
-# 	Then I type "RDT001" in terminal
-# 	And I press keys ENTER in terminal
-# EndIf
-# Then I see "User ID:" in terminal within 30 seconds
-# When I press keys ESC+F3 in terminal
-# Then I see "Function Keys" in terminal within 5 seconds
-# When I type "N" in terminal
-# Then I see "Gold Keys" in terminal within 5 seconds
-# When I type "0" in terminal
-# Then I see "PDBD-WM202111" in terminal within 5 seconds
-# When I press keys F1 in terminal
-# Then I see "User ID:" in terminal within 5 seconds
-# 	And I close terminal
-
-# LEFT BY SERVER UNEDITED FOR HISTORICAL ACCURACY
-# @rf
-# @ssh
-# Scenario: JDA RF - SSH - Cycle CI 2019.1.1
-# Given I open terminal with SSH encryption connected to "cycl-pdbd-wm202111-rf.wm-servers.com:46262" logged in as "wms" "wms" for terminal "SSH001" sized to 16 lines and 20 columns
-# If I see "Terminal ID:" in terminal within 30 seconds
-# Then I type "SSH001" in terminal
-# And I press keys ENTER in terminal
-# EndIf
-# Then I see "User ID:" in terminal within 30 seconds
-# When I press keys ESC+F3 in terminal
-# Then I see "Function Keys" in terminal within 5 seconds
-# When I type "N" in terminal
-# Then I see "Gold Keys" in terminal within 5 seconds
-# When I type "0" in terminal
-# Then I see "PDBD-WM202111" in terminal within 5 seconds
-# When I press keys F1 in terminal
-# Then I see "User ID:" in terminal within 5 seconds
-# And I close terminal
 
 @local
 Scenario: Local Terminal
