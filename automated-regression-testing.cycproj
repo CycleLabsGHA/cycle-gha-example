@@ -4,6 +4,12 @@
     "compatibilityVersion" : "2.7.1"
   },
   "settings" : {
+    "WebdriverHeadlessChrome" : false,
+    "WebdriverDefaultTimeout" : 30000,
+    "WebScreenshots" : true,
+    "WebdriverChromiumSwitches" : "",
+    "WebdriverFinderStrategy" : "frame",
+    "WebdriverHeadlessChrome" : false,
     "LocalReportOutputFormat" : "HTML",
     "FeatureFailureStrategy" : "FEATURE",
     "StepDelay" : 500,
