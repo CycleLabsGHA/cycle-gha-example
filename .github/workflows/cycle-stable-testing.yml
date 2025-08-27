@@ -16,7 +16,7 @@ on:
         default: "features/java-app-test.feature"
   schedule:
     #- cron: "0 7,19 * * *"
-    - cron: "0 */2 * * *"
+    - cron: "0 */4 * * *"
 
 jobs:
 
