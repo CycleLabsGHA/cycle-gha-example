@@ -110,12 +110,12 @@ jobs:
 
       - name: Validate secrets file
         run: |
-          Write-Host "📍 Current directory: $(Get-Location)"
+          Write-Host "Current directory: $(Get-Location)"
           Get-ChildItem
 
       - name: Validate secrets file
         run: |
-          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
           Get-ChildItem -Path $env:GITHUB_WORKSPACE
           
       - name: Upload Azure KeyVault secrets for other jobs to use
@@ -173,12 +173,12 @@ jobs:
 
       - name: Validate secrets file
         run: |
-          Write-Host "📍 Current directory: $(Get-Location)"
+          Write-Host "Current directory: $(Get-Location)"
           Get-ChildItem
 
       - name: Validate secrets file
         run: |
-          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
           Get-ChildItem -Path $env:GITHUB_WORKSPACE
           
       - name: Export secrets as env vars
@@ -203,12 +203,12 @@ jobs:
 
       - name: Validate secrets file
         run: |
-          Write-Host "📍 Current directory: $(Get-Location)"
+          Write-Host "Current directory: $(Get-Location)"
           Get-ChildItem
 
       - name: Validate secrets file
         run: |
-          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
           Get-ChildItem -Path $env:GITHUB_WORKSPACE
           
       - name: Export secrets as env vars
@@ -233,14 +233,14 @@ jobs:
 
       - name: Validate secrets file
         run: |
-          Write-Host "📍 Current directory: $(Get-Location)"
+          Write-Host "Current directory: $(Get-Location)"
           Get-ChildItem
 
       - name: Validate secrets file
         run: |
-          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
           Get-ChildItem -Path $env:GITHUB_WORKSPACE
-
+          
       - name: Export secrets as env vars
         run: |
           Get-Content secrets.env | ForEach-Object {
@@ -263,12 +263,12 @@ jobs:
 
       - name: Validate secrets file
         run: |
-          Write-Host "📍 Current directory: $(Get-Location)"
+          Write-Host "Current directory: $(Get-Location)"
           Get-ChildItem
 
       - name: Validate secrets file
         run: |
-          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
           Get-ChildItem -Path $env:GITHUB_WORKSPACE
           
       - name: Export secrets as env vars
