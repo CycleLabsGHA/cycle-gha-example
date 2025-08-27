@@ -109,7 +109,6 @@ jobs:
           }
 
       - name: Validate secrets file
-        shell: pwsh
         run: |
           Write-Host "📍 Current directory: $(Get-Location)"
           Get-ChildItem
@@ -173,7 +172,6 @@ jobs:
           name: secrets
 
       - name: Validate secrets file
-        shell: pwsh
         run: |
           Write-Host "📍 Current directory: $(Get-Location)"
           Get-ChildItem
@@ -204,7 +202,6 @@ jobs:
           name: secrets
 
       - name: Validate secrets file
-        shell: pwsh
         run: |
           Write-Host "📍 Current directory: $(Get-Location)"
           Get-ChildItem
@@ -235,7 +232,6 @@ jobs:
           name: secrets
 
       - name: Validate secrets file
-        shell: pwsh
         run: |
           Write-Host "📍 Current directory: $(Get-Location)"
           Get-ChildItem
@@ -266,7 +262,6 @@ jobs:
           name: secrets
 
       - name: Validate secrets file
-        shell: pwsh
         run: |
           Write-Host "📍 Current directory: $(Get-Location)"
           Get-ChildItem
