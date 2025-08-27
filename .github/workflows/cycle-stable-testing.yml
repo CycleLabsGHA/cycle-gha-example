@@ -108,6 +108,12 @@ jobs:
             $name, $value = $_ -split '=', 2
             echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
           }
+          
+      - name: Upload secrets for other jobs to use
+        uses: actions/upload-artifact@v4
+        with:
+          name: secrets
+          path: secrets.env
 
       - name: Who is my GitHub Actions Runner service running as?
         run: |
@@ -151,6 +157,17 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
+      - name: Download secrets file
+        uses: actions/download-artifact@v4
+        with:
+          name: secrets
+
+      - name: Export secrets as env vars
+        run: |
+          Get-Content secrets.env | ForEach-Object {
+            $name, $value = $_ -split '=', 2
+            echo "$name=$value" >> $GITHUB_ENV
+          }
       - name: Cycle CLI - Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -160,6 +177,17 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
+      - name: Download secrets file
+        uses: actions/download-artifact@v4
+        with:
+          name: secrets
+
+      - name: Export secrets as env vars
+        run: |
+          Get-Content secrets.env | ForEach-Object {
+            $name, $value = $_ -split '=', 2
+            echo "$name=$value" >> $GITHUB_ENV
+          }
       - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -169,6 +197,17 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
+      - name: Download secrets file
+        uses: actions/download-artifact@v4
+        with:
+          name: secrets
+
+      - name: Export secrets as env vars
+        run: |
+          Get-Content secrets.env | ForEach-Object {
+            $name, $value = $_ -split '=', 2
+            echo "$name=$value" >> $GITHUB_ENV
+          }
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -178,6 +217,17 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
+      - name: Download secrets file
+        uses: actions/download-artifact@v4
+        with:
+          name: secrets
+
+      - name: Export secrets as env vars
+        run: |
+          Get-Content secrets.env | ForEach-Object {
+            $name, $value = $_ -split '=', 2
+            echo "$name=$value" >> $GITHUB_ENV
+          }
       - name: Cycle CLI - Run Java Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
