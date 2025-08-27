@@ -109,11 +109,11 @@ jobs:
             echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
           }
           
-      - name: Upload secrets for other jobs to use
+      - name: Upload Azure KeyVault secrets for other jobs to use
         uses: actions/upload-artifact@v4
         with:
           name: secrets
-          path: secrets.env
+          path: $GITHUB_WORKSPACE\secrets.env
 
       - name: Who is my GitHub Actions Runner service running as?
         run: |
@@ -161,10 +161,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
+          path: $GITHUB_WORKSPACE\secrets.env
 
       - name: Export secrets as env vars
         run: |
-          Get-Content secrets.env | ForEach-Object {
+          Get-Content $GITHUB_WORKSPACE\secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" >> $GITHUB_ENV
           }
@@ -181,10 +182,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
+          path: $GITHUB_WORKSPACE\secrets.env
 
       - name: Export secrets as env vars
         run: |
-          Get-Content secrets.env | ForEach-Object {
+          Get-Content $GITHUB_WORKSPACE\secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" >> $GITHUB_ENV
           }
@@ -201,10 +203,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
+          path: $GITHUB_WORKSPACE\secrets.env
 
       - name: Export secrets as env vars
         run: |
-          Get-Content secrets.env | ForEach-Object {
+          Get-Content $GITHUB_WORKSPACE\secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" >> $GITHUB_ENV
           }
@@ -221,10 +224,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
+          path: $GITHUB_WORKSPACE\secrets.env
 
       - name: Export secrets as env vars
         run: |
-          Get-Content secrets.env | ForEach-Object {
+          Get-Content $GITHUB_WORKSPACE\secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" >> $GITHUB_ENV
           }
