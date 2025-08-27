@@ -113,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: secrets
-          path: $GITHUB_WORKSPACE\secrets.env
+          path: secrets.env
 
       - name: Who is my GitHub Actions Runner service running as?
         run: |
@@ -161,7 +161,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
-          path: $GITHUB_WORKSPACE\secrets.env
+          path: secrets.env
 
       - name: Export secrets as env vars
         run: |
@@ -182,7 +182,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
-          path: $GITHUB_WORKSPACE\secrets.env
+          path: secrets.env
 
       - name: Export secrets as env vars
         run: |
@@ -203,7 +203,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
-          path: $GITHUB_WORKSPACE\secrets.env
+          path: secrets.env
 
       - name: Export secrets as env vars
         run: |
@@ -224,7 +224,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
-          path: $GITHUB_WORKSPACE\secrets.env
+          path: secrets.env
 
       - name: Export secrets as env vars
         run: |
