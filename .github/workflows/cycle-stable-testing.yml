@@ -15,7 +15,6 @@ on:
         required: false
         default: "features/java-app-test.feature"
   schedule:
-    #- cron: "0 7,19 * * *"
     - cron: "0 */4 * * *"
 
 jobs:
@@ -108,6 +107,17 @@ jobs:
             $name, $value = $_ -split '=', 2
             echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
           }
+
+      - name: Validate secrets file
+        shell: pwsh
+        run: |
+          Write-Host "📍 Current directory: $(Get-Location)"
+          Get-ChildItem
+
+      - name: Validate secrets file
+        run: |
+          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Get-ChildItem -Path $env:GITHUB_WORKSPACE
           
       - name: Upload Azure KeyVault secrets for other jobs to use
         uses: actions/upload-artifact@v4
@@ -161,11 +171,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
-          path: secrets.env
 
+      - name: Validate secrets file
+        shell: pwsh
+        run: |
+          Write-Host "📍 Current directory: $(Get-Location)"
+          Get-ChildItem
+
+      - name: Validate secrets file
+        run: |
+          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Get-ChildItem -Path $env:GITHUB_WORKSPACE
+          
       - name: Export secrets as env vars
         run: |
-          Get-Content $GITHUB_WORKSPACE\secrets.env | ForEach-Object {
+          Get-Content secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" >> $GITHUB_ENV
           }
@@ -182,11 +202,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
-          path: secrets.env
 
+      - name: Validate secrets file
+        shell: pwsh
+        run: |
+          Write-Host "📍 Current directory: $(Get-Location)"
+          Get-ChildItem
+
+      - name: Validate secrets file
+        run: |
+          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Get-ChildItem -Path $env:GITHUB_WORKSPACE
+          
       - name: Export secrets as env vars
         run: |
-          Get-Content $GITHUB_WORKSPACE\secrets.env | ForEach-Object {
+          Get-Content secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" >> $GITHUB_ENV
           }
@@ -203,11 +233,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
-          path: secrets.env
+
+      - name: Validate secrets file
+        shell: pwsh
+        run: |
+          Write-Host "📍 Current directory: $(Get-Location)"
+          Get-ChildItem
+
+      - name: Validate secrets file
+        run: |
+          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Get-ChildItem -Path $env:GITHUB_WORKSPACE
 
       - name: Export secrets as env vars
         run: |
-          Get-Content $GITHUB_WORKSPACE\secrets.env | ForEach-Object {
+          Get-Content secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" >> $GITHUB_ENV
           }
@@ -224,11 +264,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: secrets
-          path: secrets.env
 
+      - name: Validate secrets file
+        shell: pwsh
+        run: |
+          Write-Host "📍 Current directory: $(Get-Location)"
+          Get-ChildItem
+
+      - name: Validate secrets file
+        run: |
+          Write-Host "📂 Listing contents of $env:GITHUB_WORKSPACE"
+          Get-ChildItem -Path $env:GITHUB_WORKSPACE
+          
       - name: Export secrets as env vars
         run: |
-          Get-Content $GITHUB_WORKSPACE\secrets.env | ForEach-Object {
+          Get-Content secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" >> $GITHUB_ENV
           }
