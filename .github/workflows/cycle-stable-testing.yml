@@ -33,7 +33,7 @@ jobs:
         run: |
           az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1 >/dev/null 2>&1
 
-  run-cycle-tests:
+  prep-worker:
     needs: scale-up-instance
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
@@ -77,17 +77,6 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          
-      # - name: Get specific secrets and set environment variables
-      #   run: |
-      #     $secret_names = @("PW-AZURESQL", "UN-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
-      #     foreach ($secret in $secret_names) {
-      #       $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
-      #       # Mask the secret value in logs
-      #       echo "::add-mask::$secret_value"
-      #       echo "$secret=$secret_value" >> $env:GITHUB_ENV
-      #     }
-      #   shell: powershell
 
       - name: Retrieve Secrets from Azure Key Vault
         run: |
@@ -153,26 +142,51 @@ jobs:
       
           # Allow some time for the .env file copy to go through
           Start-Sleep -Seconds 10
-      
+
       - name: Get Cycle-CLI version
         run: cycle-cli.exe -v
       
+  cycle-api-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Cycle CLI - Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
-      
+
+  cycle-browser-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
 
+  cycle-connection-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
 
+  cycle-java-app-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Cycle CLI - Run Java Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
 
+  cycle-gather-logs:
+    needs: cycle-java-app-test
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Parse Cycle log file for failed scenarios + grabbing environment
         run: |
           # Scrape the Cycle CLI output for tests that failed ([Fail])
@@ -363,7 +377,7 @@ jobs:
   scale-down-instance:
     # This makes sure that the scale set instance is deallocated even if the Cycle test(s) fail.
     if: always()
-    needs: run-cycle-tests
+    needs: cycle-father-logs
     runs-on: ubuntu-latest
     steps:
     
