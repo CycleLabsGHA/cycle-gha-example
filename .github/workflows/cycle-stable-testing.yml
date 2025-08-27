@@ -377,7 +377,7 @@ jobs:
   scale-down-instance:
     # This makes sure that the scale set instance is deallocated even if the Cycle test(s) fail.
     if: always()
-    needs: cycle-father-logs
+    needs: cycle-gather-logs
     runs-on: ubuntu-latest
     steps:
     
