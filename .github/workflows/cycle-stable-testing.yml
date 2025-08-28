@@ -117,31 +117,29 @@ jobs:
       
       # Anchor for exporting env vars
       - &export-secrets
-        name: Export secrets as env vars
+        name: Export secrets to $env:GITHUB_ENV
         shell: powershell
         run: |
-          # Export all secrets from secrets.env
-          Get-Content secrets.env | ForEach-Object {
-            $name, $value = $_ -split '=', 2
-            echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
-          }
-
-          # Validate that the secrets were set
           $allSet = $true
           Get-Content secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
-            # Use Get-Item to dynamically access env variable
-            if (-not (Get-Item "env:$name")) {
+            # Set for current process
+            $env:$name = $value
+            # Set for GitHub Actions
+            "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
+      
+            # Validate
+            if (-not $env:$name) {
               Write-Host "❌ $name was NOT set in environment variables"
               $allSet = $false
             } else {
-              $currentValue = (Get-Item "env:$name").Value
-              Write-Host "✅ $name is set: $($currentValue.Substring(0, [Math]::Min(8, $currentValue.Length)))..."  # first few chars
+              $val = $env:$name
+              Write-Host "✅ $name is set: $($val.Substring(0, [Math]::Min(8, $val.Length)))..."
             }
           }
-
+      
           if (-not $allSet) { 
-            throw "One or more secrets were not exported to environment variables!"
+            throw "One or more secrets were not exported!"
           }
 
       - name: Who is my GitHub Actions Runner service running as?
