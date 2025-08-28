@@ -133,10 +133,10 @@ jobs:
               # Validate
               $currentValue = (Get-Item "env:$name").Value
               if (-not $currentValue) {
-                  Write-Host "❌ $name was NOT set in environment variables"
+                  Write-Output "❌ $name was NOT set in environment variables"
                   $allSet = $false
               } else {
-                  Write-Host "✅ $name is set: $($currentValue.Substring(0, [Math]::Min(8, $currentValue.Length)))..."
+                  Write-Output "✅ $name is set: $($currentValue.Substring(0, [Math]::Min(8, $currentValue.Length)))..."
               }
           }
       
