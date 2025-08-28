@@ -121,6 +121,8 @@ jobs:
         shell: powershell
         run: |
           $allSet = $true
+          $envFile = $env:GITHUB_ENV
+      
           Get-Content secrets.env | ForEach-Object {
               $name, $value = $_ -split '=', 2
       
@@ -128,7 +130,7 @@ jobs:
               Set-Item -Path "env:$name" -Value $value
       
               # Also set for GitHub Actions subsequent steps
-              "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
+              Add-Content -Path $envFile -Value "$name=$value"
       
               # Validate
               $currentValue = (Get-Item "env:$name").Value
@@ -143,7 +145,6 @@ jobs:
           if (-not $allSet) {
               throw "One or more secrets were not exported to environment variables!"
           }
-
       - name: Who is my GitHub Actions Runner service running as?
         run: |
           Get-WmiObject Win32_Service | Where-Object { $_.Name -like "*actions.runner*" } | Select Name, StartName
