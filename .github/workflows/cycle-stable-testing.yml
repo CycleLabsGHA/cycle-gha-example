@@ -74,74 +74,91 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Retrieve Secrets from Azure Key Vault
+          
+      - name: Get specific secrets and set environment variables
         run: |
-          # Define secret names
-          $secretNames = @('PW-AZURESQL', 'PW-DB2', 'PW-MOCA', 'PW-MYSQL', 'PW-OPENSSH', 'PW-ORACLE-DB', 'PW-SQL-DB', 'PW-SQL14-DB', 'PW-TELNET', 'UN-AZURESQL', 'CS-AZURESQL')
-
-          # Create dotenv file
-          $envFile = "secrets.env"
-          New-Item -Path $envFile -ItemType File -Force
-
-          foreach ($secretName in $secretNames) {
-            # Convert secret name to a valid format (replace '-' with '_')
-            $safeSecretName = $secretName -replace '-', '_'
-
-            # Retrieve secret value from Azure Key Vault
-            $secretValue = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secretName --query 'value' -o tsv
-
-            # Add to dotenv file
-            Add-Content -Path $envFile -Value "$safeSecretName=$secretValue"
-
-            # Mask the secret value in logs
-            echo "::add-mask::$secretValue"
-            Write-Output "Retrieved secret for $safeSecretName"
+          $secret_names = @("PW-AZURESQL", "UN-AZURESQL", "CS-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
+          foreach ($secret in $secret_names) {
+            # Retrieve secret value
+            $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
+            
+            # Mask the secret in logs
+            echo "::add-mask::$secret_value"
+            
+            # Convert secret name to valid env var format
+            $safeSecretName = $secret -replace '-', '_'
+            
+            # Set as environment variable
+            echo "$safeSecretName=$secret_value" >> $env:GITHUB_ENV
           }
+      # Simplifying this with the step above ^^^^
+      # - name: Retrieve Secrets from Azure Key Vault
+      #   run: |
+      #     # Define secret names
+      #     $secretNames = @('PW-AZURESQL', 'PW-DB2', 'PW-MOCA', 'PW-MYSQL', 'PW-OPENSSH', 'PW-ORACLE-DB', 'PW-SQL-DB', 'PW-SQL14-DB', 'PW-TELNET', 'UN-AZURESQL', 'CS-AZURESQL')
 
-      - id: encode-secrets
-        run: |
-          $bytes = [System.IO.File]::ReadAllBytes("secrets.env")
-          $encoded = [System.Convert]::ToBase64String($bytes)
-          echo "secrets=$encoded" >> $env:GITHUB_OUTPUT
+      #     # Create dotenv file
+      #     $envFile = "secrets.env"
+      #     New-Item -Path $envFile -ItemType File -Force
+
+      #     foreach ($secretName in $secretNames) {
+      #       # Convert secret name to a valid format (replace '-' with '_')
+      #       $safeSecretName = $secretName -replace '-', '_'
+
+      #       # Retrieve secret value from Azure Key Vault
+      #       $secretValue = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secretName --query 'value' -o tsv
+
+      #       # Add to dotenv file
+      #       Add-Content -Path $envFile -Value "$safeSecretName=$secretValue"
+
+      #       # Mask the secret value in logs
+      #       echo "::add-mask::$secretValue"
+      #       Write-Output "Retrieved secret for $safeSecretName"
+      #     }
+
+      # - id: encode-secrets
+      #   run: |
+      #     $bytes = [System.IO.File]::ReadAllBytes("secrets.env")
+      #     $encoded = [System.Convert]::ToBase64String($bytes)
+      #     echo "secrets=$encoded" >> $env:GITHUB_OUTPUT
 
       # These anchors are used to fetch secrets w/o creating an artifact and then put them into environment variables to allow the .conf file to map them for each Cycle test.
       # Anchor for restoring the file
-      - &restore-secrets-file
-        name: Restore secrets.env
-        shell: powershell
-        run: |
-          $encoded = "${{ needs.prep-worker.outputs.secrets-env }}"
-          $bytes = [System.Convert]::FromBase64String($encoded)
-          [System.IO.File]::WriteAllBytes("secrets.env", $bytes)
+      # - &restore-secrets-file
+      #   name: Restore secrets.env
+      #   shell: powershell
+      #   run: |
+      #     $encoded = "${{ needs.prep-worker.outputs.secrets-env }}"
+      #     $bytes = [System.Convert]::FromBase64String($encoded)
+      #     [System.IO.File]::WriteAllBytes("secrets.env", $bytes)
       
-      # Anchor for exporting env vars
-      - &export-secrets
-        name: Export secrets to GitHub Actions environment
-        shell: powershell
-        run: |
-          $allSet = $true
-          Get-Content secrets.env | ForEach-Object {
-              $name, $value = $_ -split '=', 2
+      # # Anchor for exporting env vars
+      # - &export-secrets
+      #   name: Export secrets to GitHub Actions environment
+      #   shell: powershell
+      #   run: |
+      #     $allSet = $true
+      #     Get-Content secrets.env | ForEach-Object {
+      #         $name, $value = $_ -split '=', 2
       
-              # Export to current process (optional for validation)
-              Set-Item -Path "env:$name" -Value $value
+      #         # Export to current process (optional for validation)
+      #         Set-Item -Path "env:$name" -Value $value
       
-              # Export to GitHub Actions environment for subsequent steps
-              "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      #         # Export to GitHub Actions environment for subsequent steps
+      #         "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       
-              # Simple validation output
-              if (-not $value) {
-                  Write-Host "❌ $name has no value"
-                  $allSet = $false
-              } else {
-                  Write-Host "✅ $name set (preview): $($value.Substring(0, [Math]::Min(8, $value.Length)))..."
-              }
-          }
+      #         # Simple validation output
+      #         if (-not $value) {
+      #             Write-Host "❌ $name has no value"
+      #             $allSet = $false
+      #         } else {
+      #             Write-Host "✅ $name set (preview): $($value.Substring(0, [Math]::Min(8, $value.Length)))..."
+      #         }
+      #     }
       
-          if (-not $allSet) {
-              throw "One or more secrets failed to export!"
-          }
+      #     if (-not $allSet) {
+      #         throw "One or more secrets failed to export!"
+      #     }
     
       - name: Who is my GitHub Actions Runner service running as?
         run: |
@@ -185,8 +202,8 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      - *restore-secrets-file
-      - *export-secrets
+      # - *restore-secrets-file
+      # - *export-secrets
       - name: Cycle CLI - Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -196,8 +213,8 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      - *restore-secrets-file
-      - *export-secrets
+      # - *restore-secrets-file
+      # - *export-secrets
       - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -207,8 +224,8 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      - *restore-secrets-file
-      - *export-secrets
+      # - *restore-secrets-file
+      # - *export-secrets
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -218,8 +235,8 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      - *restore-secrets-file
-      - *export-secrets
+      # - *restore-secrets-file
+      # - *export-secrets
       - name: Cycle CLI - Run Java Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
