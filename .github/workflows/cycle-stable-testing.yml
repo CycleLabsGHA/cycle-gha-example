@@ -18,7 +18,6 @@ on:
     - cron: "0 */4 * * *"
 
 jobs:
-
   scale-up-instance:
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +36,6 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      
       - name: Set Environment Variable
         run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $env:GITHUB_ENV
         
@@ -101,28 +99,48 @@ jobs:
             Write-Output "Retrieved secret for $safeSecretName"
           }
 
-      - name: Save secrets as environment variables
+      - id: encode-secrets
         run: |
+          $bytes = [System.IO.File]::ReadAllBytes("secrets.env")
+          $encoded = [System.Convert]::ToBase64String($bytes)
+          echo "secrets=$encoded" >> $env:GITHUB_OUTPUT
+
+      # These anchors are used to fetch secrets w/o creating an artifact and then put them into environment variables to allow the .conf file to map them for each Cycle test.
+      # Anchor for restoring the file
+      - &restore-secrets-file
+        name: Restore secrets.env
+        shell: pwsh
+        run: |
+          $encoded = "${{ needs.prep-worker.outputs.secrets-env }}"
+          $bytes = [System.Convert]::FromBase64String($encoded)
+          [System.IO.File]::WriteAllBytes("secrets.env", $bytes)
+      
+      # Anchor for exporting env vars
+      - &export-secrets
+        name: Export secrets as env vars
+        shell: pwsh
+        run: |
+          # Export all secrets from secrets.env
           Get-Content secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
             echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
           }
 
-      - name: Validate secrets file
-        run: |
-          Write-Host "Current directory: $(Get-Location)"
-          Get-ChildItem
+          # Validate that the secrets were set
+          $allSet = $true
+          Get-Content secrets.env | ForEach-Object {
+            $name, $value = $_ -split '=', 2
+            if (-not $env:$name) {
+              Write-Host "❌ $name was NOT set in environment variables"
+              $allSet = $false
+            } else {
+              Write-Host "✅ $name is set: $($env:$name.Substring(0, [Math]::Min(8, $env:$name.Length)))..."  # show only first few chars
+            }
+          }
 
-      - name: Validate secrets file
-        run: |
-          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
-          Get-ChildItem -Path $env:GITHUB_WORKSPACE
-          
-      - name: Upload Azure KeyVault secrets for other jobs to use
-        uses: actions/upload-artifact@v4
-        with:
-          name: secrets
-          path: secrets.env
+          if (-not $allSet) { 
+            throw "One or more secrets were not exported to environment variables!"
+          }
 
       - name: Who is my GitHub Actions Runner service running as?
         run: |
@@ -160,33 +178,14 @@ jobs:
 
       - name: Get Cycle-CLI version
         run: cycle-cli.exe -v
-      
+
   cycle-api-test:
     needs: prep-worker
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      - name: Download secrets file
-        uses: actions/download-artifact@v4
-        with:
-          name: secrets
-
-      - name: Validate secrets file
-        run: |
-          Write-Host "Current directory: $(Get-Location)"
-          Get-ChildItem
-
-      - name: Validate secrets file
-        run: |
-          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
-          Get-ChildItem -Path $env:GITHUB_WORKSPACE
-          
-      - name: Export secrets as env vars
-        run: |
-          Get-Content secrets.env | ForEach-Object {
-            $name, $value = $_ -split '=', 2
-            echo "$name=$value" >> $GITHUB_ENV
-          }
+      - *restore-secrets-file
+      - *export-secrets
       - name: Cycle CLI - Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -196,27 +195,8 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      - name: Download secrets file
-        uses: actions/download-artifact@v4
-        with:
-          name: secrets
-
-      - name: Validate secrets file
-        run: |
-          Write-Host "Current directory: $(Get-Location)"
-          Get-ChildItem
-
-      - name: Validate secrets file
-        run: |
-          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
-          Get-ChildItem -Path $env:GITHUB_WORKSPACE
-          
-      - name: Export secrets as env vars
-        run: |
-          Get-Content secrets.env | ForEach-Object {
-            $name, $value = $_ -split '=', 2
-            echo "$name=$value" >> $GITHUB_ENV
-          }
+      - *restore-secrets-file
+      - *export-secrets
       - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -226,27 +206,8 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      - name: Download secrets file
-        uses: actions/download-artifact@v4
-        with:
-          name: secrets
-
-      - name: Validate secrets file
-        run: |
-          Write-Host "Current directory: $(Get-Location)"
-          Get-ChildItem
-
-      - name: Validate secrets file
-        run: |
-          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
-          Get-ChildItem -Path $env:GITHUB_WORKSPACE
-          
-      - name: Export secrets as env vars
-        run: |
-          Get-Content secrets.env | ForEach-Object {
-            $name, $value = $_ -split '=', 2
-            echo "$name=$value" >> $GITHUB_ENV
-          }
+      - *restore-secrets-file
+      - *export-secrets
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
@@ -256,27 +217,8 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      - name: Download secrets file
-        uses: actions/download-artifact@v4
-        with:
-          name: secrets
-
-      - name: Validate secrets file
-        run: |
-          Write-Host "Current directory: $(Get-Location)"
-          Get-ChildItem
-
-      - name: Validate secrets file
-        run: |
-          Write-Host "Listing contents of $env:GITHUB_WORKSPACE"
-          Get-ChildItem -Path $env:GITHUB_WORKSPACE
-          
-      - name: Export secrets as env vars
-        run: |
-          Get-Content secrets.env | ForEach-Object {
-            $name, $value = $_ -split '=', 2
-            echo "$name=$value" >> $GITHUB_ENV
-          }
+      - *restore-secrets-file
+      - *export-secrets
       - name: Cycle CLI - Run Java Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
