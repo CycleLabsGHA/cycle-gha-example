@@ -128,11 +128,13 @@ jobs:
           $allSet = $true
           Get-Content secrets.env | ForEach-Object {
             $name, $value = $_ -split '=', 2
-            if (-not $env:$name) {
+            # Use Get-Item to dynamically access env variable
+            if (-not (Get-Item "env:$name")) {
               Write-Host "❌ $name was NOT set in environment variables"
               $allSet = $false
             } else {
-              Write-Host "✅ $name is set: $($env:$name.Substring(0, [Math]::Min(8, $env:$name.Length)))..."  # show only first few chars
+              $currentValue = (Get-Item "env:$name").Value
+              Write-Host "✅ $name is set: $($currentValue.Substring(0, [Math]::Min(8, $currentValue.Length)))..."  # first few chars
             }
           }
 
