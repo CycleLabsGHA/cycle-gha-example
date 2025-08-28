@@ -109,7 +109,6 @@ jobs:
       # Anchor for restoring the file
       - &restore-secrets-file
         name: Restore secrets.env
-        shell: pwsh
         run: |
           $encoded = "${{ needs.prep-worker.outputs.secrets-env }}"
           $bytes = [System.Convert]::FromBase64String($encoded)
@@ -118,7 +117,6 @@ jobs:
       # Anchor for exporting env vars
       - &export-secrets
         name: Export secrets as env vars
-        shell: pwsh
         run: |
           # Export all secrets from secrets.env
           Get-Content secrets.env | ForEach-Object {
