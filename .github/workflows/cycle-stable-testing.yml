@@ -117,34 +117,32 @@ jobs:
       
       # Anchor for exporting env vars
       - &export-secrets
-        name: Export secrets to $env:GITHUB_ENV
+        name: Export secrets to GitHub Actions environment
         shell: powershell
         run: |
           $allSet = $true
-          $envFile = $env:GITHUB_ENV
-      
           Get-Content secrets.env | ForEach-Object {
               $name, $value = $_ -split '=', 2
       
-              # Set for current process dynamically
+              # Export to current process (optional for validation)
               Set-Item -Path "env:$name" -Value $value
       
-              # Also set for GitHub Actions subsequent steps
-              Add-Content -Path $envFile -Value "$name=$value"
+              # Export to GitHub Actions environment for subsequent steps
+              "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       
-              # Validate
-              $currentValue = (Get-Item "env:$name").Value
-              if (-not $currentValue) {
-                  Write-Output "❌ $name was NOT set in environment variables"
+              # Simple validation output
+              if (-not $value) {
+                  Write-Host "❌ $name has no value"
                   $allSet = $false
               } else {
-                  Write-Output "✅ $name is set: $($currentValue.Substring(0, [Math]::Min(8, $currentValue.Length)))..."
+                  Write-Host "✅ $name set (preview): $($value.Substring(0, [Math]::Min(8, $value.Length)))..."
               }
           }
       
           if (-not $allSet) {
-              throw "One or more secrets were not exported to environment variables!"
+              throw "One or more secrets failed to export!"
           }
+    
       - name: Who is my GitHub Actions Runner service running as?
         run: |
           Get-WmiObject Win32_Service | Where-Object { $_.Name -like "*actions.runner*" } | Select Name, StartName
