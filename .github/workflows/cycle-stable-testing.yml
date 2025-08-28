@@ -122,24 +122,26 @@ jobs:
         run: |
           $allSet = $true
           Get-Content secrets.env | ForEach-Object {
-            $name, $value = $_ -split '=', 2
-            # Set for current process
-            $env:$name = $value
-            # Set for GitHub Actions
-            "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
+              $name, $value = $_ -split '=', 2
       
-            # Validate
-            if (-not $env:$name) {
-              Write-Host "❌ $name was NOT set in environment variables"
-              $allSet = $false
-            } else {
-              $val = $env:$name
-              Write-Host "✅ $name is set: $($val.Substring(0, [Math]::Min(8, $val.Length)))..."
-            }
+              # Set for current process dynamically
+              Set-Item -Path "env:$name" -Value $value
+      
+              # Also set for GitHub Actions subsequent steps
+              "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
+      
+              # Validate
+              $currentValue = (Get-Item "env:$name").Value
+              if (-not $currentValue) {
+                  Write-Host "❌ $name was NOT set in environment variables"
+                  $allSet = $false
+              } else {
+                  Write-Host "✅ $name is set: $($currentValue.Substring(0, [Math]::Min(8, $currentValue.Length)))..."
+              }
           }
       
-          if (-not $allSet) { 
-            throw "One or more secrets were not exported!"
+          if (-not $allSet) {
+              throw "One or more secrets were not exported to environment variables!"
           }
 
       - name: Who is my GitHub Actions Runner service running as?
