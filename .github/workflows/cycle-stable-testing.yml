@@ -102,17 +102,16 @@ jobs:
             # Export directly to env for subsequent steps
             echo "$safeSecretName=$secretValue" >> $env:GITHUB_ENV
 
-            Write-Output "✅ Exported $safeSecretName"
+            Write-Output "Exported $safeSecretName"
           }
 
       - &check-env
           name: Debug - List exported env var names
           shell: powershell
           run: |
-            Write-Output "✅ Env vars currently exported:"
-            Get-Content $env:GITHUB_ENV | ForEach-Object {
-              $name = ($_ -split '=', 2)[0]
-              Write-Output " - $name"
+            Write-Output "Env vars currently available:"
+            Get-ChildItem Env: | Where-Object { $_.Name -match '^(PW_|UN_|CS_)' } | ForEach-Object {
+              Write-Output " - $($_.Name)"
             }
     
       - name: Who is my GitHub Actions Runner service running as?
