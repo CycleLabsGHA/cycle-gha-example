@@ -15,11 +15,9 @@ on:
         required: false
         default: "features/java-app-test.feature"
   schedule:
-    #- cron: "0 7,19 * * *"
-    - cron: "0 */2 * * *"
+    - cron: "0 */4 * * *"
 
 jobs:
-
   scale-up-instance:
     runs-on: ubuntu-latest
     steps:
@@ -33,12 +31,11 @@ jobs:
         run: |
           az vmss scale --resource-group "6679-cycle-gha-runner-scaleset" --name "cycle-gha-runner-scaleset" --new-capacity 1 >/dev/null 2>&1
 
-  run-cycle-tests:
+  prep-worker:
     needs: scale-up-instance
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
-      
       - name: Set Environment Variable
         run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $env:GITHUB_ENV
         
@@ -73,13 +70,14 @@ jobs:
           }
         shell: powershell
 
-      - name: Log in with Azure
+      - &azure-login
+        name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      # v3 - Dynamic way to get secrets from Azure Key Vault and set them as environment variables
-      - name: Retrieve Secrets from Azure Key Vault and Export
+          
+      - &retrieve-secrets
+        name: Retrieve secrets from Azure Key Vault and Export
         shell: powershell
         run: |
           $secretNames = @(
@@ -107,58 +105,16 @@ jobs:
             Write-Output "✅ Exported $safeSecretName"
           }
 
-      - name: Debug - List exported env var names
-        shell: powershell       
-        run: |
-          Write-Output "✅ Env vars currently exported:"
-          Get-Content $env:GITHUB_ENV | ForEach-Object {
-            $name = ($_ -split '=', 2)[0]
-            Write-Output " - $name"
-          }
-
-      # v1 - Explicitly get each secret from Azure Key Vault and set as environment variable
-      # - name: Get specific secrets and set environment variables
-      #   run: |
-      #     $secret_names = @("PW-AZURESQL", "UN-AZURESQL", "PW-DB2", "PW-MOCA", "PW-MYSQL", "PW-OPENSSH", "PW-ORACLE-DB", "PW-SQL-DB", "PW-SQL14-DB", "PW-TELNET")
-      #     foreach ($secret in $secret_names) {
-      #       $secret_value = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secret --query "value" -o tsv
-      #       # Mask the secret value in logs
-      #       echo "::add-mask::$secret_value"
-      #       echo "$secret=$secret_value" >> $env:GITHUB_ENV
-      #     }
-      #   shell: powershell
-      # v2 - More dynamic way to get secrets from Azure Key Vault and set them as environment variables
-      # - name: Retrieve Secrets from Azure Key Vault
-      #   run: |
-      #     # Define secret names
-      #     $secretNames = @('PW-AZURESQL', 'PW-DB2', 'PW-MOCA', 'PW-MYSQL', 'PW-OPENSSH', 'PW-ORACLE-DB', 'PW-SQL-DB', 'PW-SQL14-DB', 'PW-TELNET', 'UN-AZURESQL', 'CS-AZURESQL')
-
-      #     # Create dotenv file
-      #     $envFile = "secrets.env"
-      #     New-Item -Path $envFile -ItemType File -Force
-
-      #     foreach ($secretName in $secretNames) {
-      #       # Convert secret name to a valid format (replace '-' with '_')
-      #       $safeSecretName = $secretName -replace '-', '_'
-
-      #       # Retrieve secret value from Azure Key Vault
-      #       $secretValue = az keyvault secret show --vault-name ${{ secrets.DEV_KV_NAME }} --name $secretName --query 'value' -o tsv
-
-      #       # Add to dotenv file
-      #       Add-Content -Path $envFile -Value "$safeSecretName=$secretValue"
-
-      #       # Mask the secret value in logs
-      #       echo "::add-mask::$secretValue"
-      #       Write-Output "Retrieved secret for $safeSecretName"
-      #     }
-
-      # - name: Save secrets as environment variables
-      #   run: |
-      #     Get-Content secrets.env | ForEach-Object {
-      #       $name, $value = $_ -split '=', 2
-      #       echo "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append
-      #     }
-
+      - &check-env
+          name: Debug - List exported env var names
+          shell: powershell
+          run: |
+            Write-Output "✅ Env vars currently exported:"
+            Get-Content $env:GITHUB_ENV | ForEach-Object {
+              $name = ($_ -split '=', 2)[0]
+              Write-Output " - $name"
+            }
+    
       - name: Who is my GitHub Actions Runner service running as?
         run: |
           Get-WmiObject Win32_Service | Where-Object { $_.Name -like "*actions.runner*" } | Select Name, StartName
@@ -187,32 +143,59 @@ jobs:
           Write-Output "Copying .env file to $destinationDir"
       
           # Print the contents of the .env file in the Cycle directory to confirm move was successful
-          #Write-Output "The .env file from the Cycle directory:"
-          # Uncomment the line below to see the contents of the copied .env file
-          # Get-Content -Path "$destinationDir\.env"
+          Write-Output "The .env file from the Cycle directory:"
+          Get-Content -Path "$destinationDir\.env"
       
           # Allow some time for the .env file copy to go through
           Start-Sleep -Seconds 10
-      
+
       - name: Get Cycle-CLI version
         run: cycle-cli.exe -v
-      
+
+  cycle-api-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Cycle CLI - Run API Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
-      
+
+  cycle-browser-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Cycle CLI - Run Browser Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
 
+  cycle-connection-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
+      - *azure-login
+      - *retrieve-secrets
+      - *check-env  
       - name: Cycle CLI - Run Connection Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
 
+  cycle-java-app-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Cycle CLI - Run Java Test
         run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
         continue-on-error: true
 
+  cycle-gather-logs:
+    needs: [cycle-java-app-test, cycle-connection-test, cycle-browser-test, cycle-api-test]
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
       - name: Parse Cycle log file for failed scenarios + grabbing environment
         run: |
           # Scrape the Cycle CLI output for tests that failed ([Fail])
@@ -403,7 +386,7 @@ jobs:
   scale-down-instance:
     # This makes sure that the scale set instance is deallocated even if the Cycle test(s) fail.
     if: always()
-    needs: run-cycle-tests
+    needs: cycle-gather-logs
     runs-on: ubuntu-latest
     steps:
     
