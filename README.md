@@ -1,6 +1,11 @@
 # cycle-gha-example
 An example of how to use Cycle CLI within a GitHub Actions workflow.
 
+## Branching
+We test both Cycle `stable` as well as Cycle `rc` within GitLab.
+
+![MAIN vs. RC](https://cycldocimgs.blob.core.windows.net/docimgs/main-vs-rc.png)
+
 # Dynamic Runners
 The runners used for this workflow are dynamically spun up from an Azure scaleset. ▶️
 
