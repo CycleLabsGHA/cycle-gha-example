@@ -1,0 +1,403 @@
+name: Cycle RC Testing
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      TEST_AUTOMATION_CI_ENVIRONMENT:
+        description: "Specify the test environment (e.g., wms1, wms2, wms3)"
+        required: false
+        default: "wms1"
+      feature_file:
+        description: "Feature file to run"
+        required: false
+        default: "features/java-app-test.feature"
+  schedule:
+    - cron: "0 */4 * * *"
+
+jobs:
+  scale-up-instance:
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss scale --resource-group "10267-cycle-gha-runner-scaleset-rc" --name "cycle-gha-runner-scaleset-rc" --new-capacity 1 >/dev/null 2>&1
+
+  prep-worker:
+    needs: scale-up-instance
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
+      - name: Set Environment Variable
+        run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $env:GITHUB_ENV
+        
+      - name: Use the Environment Variable
+        run: echo "Running Cycle tests using the $TEST_AUTOMATION_CI_ENVIRONMENT environment"
+
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+            
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+
+      - run: echo "🖥️ This job is now running on a self-hosted Windows runner named ${{ runner.name	}} !"
+
+      - name: Show Runner OS
+        run: echo "The operating system of the runner is ${{ runner.os }}"
+        
+      - name: Show Runner Workspace
+        run: echo "The workspace of the runner is ${{ runner.workspace }}"
+      
+      - name: Install Azure CLI if not installed
+        run: |
+          # Check if Azure CLI is installed
+          if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+              Write-Host "Azure CLI not found. Installing..."
+              Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile AzureCLI.msi
+              Start-Process msiexec.exe -ArgumentList '/I AzureCLI.msi /quiet /norestart' -NoNewWindow -Wait
+              Write-Host "Azure CLI installed successfully."
+          } else {
+              Write-Host "Azure CLI is already installed."
+          }
+        shell: powershell
+
+      - &azure-login
+        name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - &retrieve-secrets
+        name: Retrieve secrets from Azure Key Vault and Export
+        shell: powershell
+        run: |
+          $secretNames = @(
+            'PW-AZURESQL', 'PW-DB2', 'PW-MOCA', 'PW-MYSQL', 'PW-OPENSSH',
+            'PW-ORACLE-DB', 'PW-SQL-DB', 'PW-SQL14-DB', 'PW-TELNET',
+            'UN-AZURESQL', 'CS-AZURESQL'
+          )
+
+          foreach ($secretName in $secretNames) {
+            # Convert to safe env var name
+            $safeSecretName = $secretName -replace '-', '_'
+
+            # Retrieve from Azure Key Vault
+            $secretValue = az keyvault secret show `
+              --vault-name ${{ secrets.DEV_KV_NAME }} `
+              --name $secretName `
+              --query 'value' -o tsv
+
+            # Mask in logs
+            echo "::add-mask::$secretValue"
+
+            # Export directly to env for subsequent steps
+            echo "$safeSecretName=$secretValue" >> $env:GITHUB_ENV
+
+            Write-Output "Exported $safeSecretName"
+          }
+
+      - &check-env
+          name: Debug - List exported env var names
+          shell: powershell
+          run: |
+            Write-Output "Env vars currently available:"
+            Get-ChildItem Env: | Where-Object { $_.Name -match '^(PW_|UN_|CS_)' } | ForEach-Object {
+              Write-Output " - $($_.Name)"
+            }
+    
+      - name: Who is my GitHub Actions Runner service running as?
+        run: |
+          Get-WmiObject Win32_Service | Where-Object { $_.Name -like "*actions.runner*" } | Select Name, StartName
+          
+      - name: List files in the repository
+        run: |
+          Get-ChildItem -Path ${{ github.workspace }}
+          Get-ChildItem -Path "${{ github.workspace }}\config"
+
+      - name: Copy in .env file for Cycle
+        run: |
+        
+          # Print the contents of the .env file
+          Write-Output "The .env file from the repository:"
+          Get-Content -Path "${{ github.workspace }}\config\.env"
+      
+          # Ensure the destination directory exists
+          $destinationDir = 'C:\Users\gha-admin\AppData\Roaming\Cycle\config'
+          if (!(Test-Path -Path $destinationDir)) {
+              New-Item -ItemType Directory -Path $destinationDir -Force
+          }
+          Write-Output "Ensuring directory exists for .env file to be placed in."
+      
+          # Copy the .env file
+          Copy-Item -Path "${{ github.workspace }}\config\.env" -Destination $destinationDir -Force
+          Write-Output "Copying .env file to $destinationDir"
+      
+          # Print the contents of the .env file in the Cycle directory to confirm move was successful
+          Write-Output "The .env file from the Cycle directory:"
+          Get-Content -Path "$destinationDir\.env"
+      
+          # Allow some time for the .env file copy to go through
+          Start-Sleep -Seconds 10
+
+      - name: Get Cycle-CLI version
+        run: cycle-cli.exe -v
+
+  cycle-api-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
+      - name: Cycle CLI - Run API Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/api-test-updated.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        continue-on-error: true
+
+  cycle-browser-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
+      - name: Cycle CLI - Run Browser Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/grocer.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        continue-on-error: true
+
+  cycle-connection-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
+      - *azure-login
+      - *retrieve-secrets
+      - *check-env  
+      - name: Cycle CLI - Run Connection Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/conf-file-cycle-connection-test.feature | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        continue-on-error: true
+
+  cycle-java-app-test:
+    needs: prep-worker
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
+      - name: Cycle CLI - Run Java Test
+        run: cycle-cli --clientid ${{ secrets.CI_CYCLE_AUTH }} --client-credential ${{ secrets.CI_CYCLE_AUTH_SECRET }} -p automated-regression-testing.cycproj -u cyclejenkinsuser.cycuser features/java-app-test.feature  | Tee-Object -FilePath "${{ runner.workspace }}\test_logs.txt" -Append
+        continue-on-error: true
+
+  cycle-gather-logs:
+    needs: [cycle-java-app-test, cycle-connection-test, cycle-browser-test, cycle-api-test]
+    runs-on: self-hosted
+    timeout-minutes: 30  # Set the timeout to 10 minutes
+    steps:
+      - name: Parse Cycle log file for failed scenarios + grabbing environment
+        run: |
+          # Scrape the Cycle CLI output for tests that failed ([Fail])
+          $failedScenarios = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match "Scenario: .* \[Fail\]" }
+
+          # Ensure the file is created even if there are no failed scenarios
+          if (-not $failedScenarios) {
+              "No failed scenarios found" | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
+              echo "FAILED_SCENARIOS=No failed scenarios found" >> $env:GITHUB_ENV
+          } else {
+              $failedScenarios | Set-Content "${{ runner.workspace }}\failed_scenarios.txt"
+              echo "FAILED_SCENARIOS=$($failedScenarios -join "`n")" >> $env:GITHUB_ENV
+          }
+
+          # Scrape the Cycle CLI output for environment value - just the FIRST occurrence.
+          $logContent = Get-Content "${{ runner.workspace }}\test_logs.txt" | Where-Object { $_ -match 'And I verify text .* is not equal to ""' } | Select-Object -First 1
+
+          Write-Host "DEBUG: Raw log content: '$logContent'"
+
+          # Clean the log: remove timestamp and excessive spaces
+          $cleanLog = $logContent -replace '^\S+\s+', '' -replace '\s+', ' '  # Normalize spaces
+          Write-Host "DEBUG: Cleaned log content: '$cleanLog'"
+
+          # Adjusted regex pattern to capture the environment name after "And I verify text"
+          if ($cleanLog -match 'And I verify text (\S+)') {
+              $environmentName = $matches[1].Trim()  # Capture the environment name
+              Write-Host "DEBUG: Extracted Environment Name: $environmentName"
+          } else {
+              Write-Host "DEBUG: Environment name was not found using regex."
+          }
+
+          # Ensure it is available for later steps in GitHub Actions
+          if ($environmentName) {
+              echo "ENVIRONMENT_ASSIGNMENT=$environmentName" >> $env:GITHUB_ENV
+              Write-Host "DEBUG: ENVIRONMENT_ASSIGNMENT set in GitHub Actions."
+          } else {
+              Write-Host "No environment name found in log."
+          } 
+          
+      - name: Read and parse logs to generate proper email summary
+        run: |
+          $summary = 'Base Report'
+          $executionId = ''
+          $scenariosPassed = 0
+          $scenariosFailed = 0
+          $totalScenarios = 0
+          $passRate = 0.0
+
+          # Path to the log file
+          $logFile = "${{ runner.workspace }}\test_logs.txt"
+
+          Write-Host "INFO: Starting the log parsing process..."
+
+          # Check if the log file exists
+          if (Test-Path $logFile) {
+              Write-Host "INFO: Log file found, starting to read lines..."
+
+              # Count total lines for progress tracking
+              $totalLines = (Get-Content $logFile).Count
+              Write-Host "INFO: Total lines in log file: $totalLines"
+
+              # Use StreamReader for efficient line-by-line reading
+              $reader = [System.IO.StreamReader]::new($logFile)
+              $foundExecutionId = $false
+              $foundFooter = $false
+
+              # Define patterns for matching in the log
+              $executionIdPattern = '^(.*) - Execution ID (.*)$'
+              $scenariosFailedPattern = 'Scenarios failed: ([0-9]+)'
+              $totalScenariosPattern = 'Scenarios executed: ([0-9]+)'
+
+              # Use StringBuilder for efficient string operations
+              $summaryContent = New-Object System.Text.StringBuilder
+              $lineNumber = 0  # Line counter
+
+              Write-Host "INFO: Parsing log lines..."
+
+              # Process the file line by line
+              while ($reader.Peek() -ge 0) {
+                  $line = $reader.ReadLine()
+                  $lineNumber++
+
+                  # Update progress bar
+                  $progressPercent = [math]::Round(($lineNumber / $totalLines) * 100, 1)
+                  Write-Progress -Activity "Parsing log file..." -Status "Processing line ${lineNumber} of ${totalLines}" -PercentComplete $progressPercent
+
+                  if (-not $foundExecutionId) {
+                      # Try to match execution ID pattern
+                      if ($line -match $executionIdPattern) {
+                          $executionId = $matches[2]
+                          $foundExecutionId = $true
+                          Write-Host "INFO: Execution ID found on line ${lineNumber}: ${executionId}"
+                      }
+                  } elseif (-not $foundFooter -and $line -match '\s*===== Summary =====\s*') {
+                      # Footer found, set flag
+                      $foundFooter = $true
+                      Write-Host "INFO: Footer section '===== Summary =====' found on line ${lineNumber}."
+                  }
+
+                  if ($foundFooter) {
+                      # Match failed scenarios
+                      if ($line -match $scenariosFailedPattern) {
+                          $scenariosFailed = [int]$matches[1]
+                          Write-Host "INFO: Found scenarios failed on line ${lineNumber}: ${scenariosFailed}"
+                      } elseif ($line -match $totalScenariosPattern) {
+                          $totalScenarios = [int]$matches[1]
+                          Write-Host "INFO: Found total scenarios executed on line ${lineNumber}: ${totalScenarios}"
+                      }
+                      # Append the line to the summary content
+                      $summaryContent.AppendLine($line) | Out-Null
+                  }
+              }
+
+              $reader.Close() # Close StreamReader when done
+
+              # If footer found and summary content is not empty, process the summary
+              if ($foundFooter -and $summaryContent.Length -gt 0) {
+                  Write-Host "INFO: Footer found and summary content is not empty. Processing summary..."
+
+                  $maxLength = 3000 - 6  # Adjust for character limit with backticks
+                  if ($summaryContent.Length -gt $maxLength) {
+                      $summaryContent.Length = $maxLength
+                      Write-Host "INFO: Summary content truncated to max length of ${maxLength} characters."
+                  }
+
+                  $summary = "${summaryContent.ToString()}"
+                  $scenariosPassed = $totalScenarios - $scenariosFailed
+
+                  if ($totalScenarios -gt 0) {
+                      # Calculate pass rate
+                      $passRate = [math]::Round(($scenariosPassed / $totalScenarios * 1000) / 10, 1)
+                      Write-Host "INFO: Pass rate calculated: ${passRate}%"
+                  }
+              }
+
+              Write-Host "INFO: Log parsing completed. Processed ${lineNumber} lines."
+              Write-Progress -Activity "Parsing log file..." -Completed
+          } else {
+              Write-Host "ERROR: Log file does not exist at ${logFile}."
+          }
+
+          # Output summary and details
+          Write-Host "Summary: ${summary}"
+          Write-Host "Execution ID: ${executionId}"
+          Write-Host "Scenarios Passed: ${scenariosPassed}"
+          Write-Host "Scenarios Failed: ${scenariosFailed}"
+          Write-Host "Total Scenarios: ${totalScenarios}"
+          Write-Host "Pass Rate: ${passRate}%"
+
+          # Export variables to GITHUB_ENV so they can be used in later steps
+          "SUMMARY=$summary" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "EXECUTION_ID=$executionId" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "SCENARIOS_PASSED=$scenariosPassed" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "SCENARIOS_FAILED=$scenariosFailed" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "TOTAL_SCENARIOS=$totalScenarios" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "PASS_RATE=$passRate%" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Read and parse failed scenarios + environment settings
+        run: |
+          $failedScenarios = Get-Content "${{ runner.workspace }}\failed_scenarios.txt" -Raw
+          Write-Host "The following scenarios failed:`n $failedScenarios"
+
+          # Read environment assignment value (no need to reassign it)
+          Write-Host "Environment Assignment: ${{ env.ENVIRONMENT_ASSIGNMENT }}"
+
+          # Printing out log data to make sure its outputting properly
+          Write-Host "CYCLE TEST SUMMARY: ${{ env.SUMMARY }}"
+          Write-Host "EXECUTION_ID: ${{ env.EXECUTION_ID }}"
+          Write-Host "SCENARIOS_PASSED: ${{ env.SCENARIOS_PASSED }}"
+          Write-Host "SCENARIOS_FAILED: ${{ env.SCENARIOS_FAILED }}"
+          Write-Host "TOTAL_SCENARIOS: ${{ env.TOTAL_SCENARIOS }}"
+          Write-Host "PASS_RATE: ${{ env.PASS_RATE }}"
+
+      - name: Save failed scenarios as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-scenarios
+          path: ${{ runner.workspace }}\failed_scenarios.txt
+          
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cycle-reports
+          path: ${{ runner.workspace }}\cycle-gha-example\featureReports\
+
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+  
+  scale-down-instance:
+    # This makes sure that the scale set instance is deallocated even if the Cycle test(s) fail.
+    if: always()
+    needs: cycle-gather-logs
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Interact with the GitHub Actions scaleset
+        run: |
+          az vmss scale --resource-group "10267-cycle-gha-runner-scaleset-rc" --name "cycle-gha-runner-scaleset-rc" --new-capacity 0 >/dev/null 2>&1
+        
+      - name: Make sure the instance has been deallocated
+        run: |
+          az vmss list-instances --resource-group "10267-cycle-gha-runner-scaleset-rc" --name "cycle-gha-runner-scaleset-rc" --output table
