@@ -5,7 +5,6 @@
   "settings" : {
     "EmailUsername" : "",
     "DatastoreUrl" : "",
-    "CustomChromeBrowserLocation" : "/Users/rberger",
     "DatastoreName" : "",
     "SenderEmailAddress" : "",
     "StoredCredentials" : [ {
