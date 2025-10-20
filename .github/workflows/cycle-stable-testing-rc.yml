@@ -15,7 +15,7 @@ on:
         required: false
         default: "features/java-app-test.feature"
   schedule:
-    - cron: "0 */3 * * *"
+    - cron: "0 */5 * * *"
 
 env:
   SE_MSEDGEDRIVER_MIRROR_URL: "https://msedgedriver.microsoft.com"
