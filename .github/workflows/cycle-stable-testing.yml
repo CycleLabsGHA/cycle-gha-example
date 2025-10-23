@@ -372,7 +372,6 @@ jobs:
           Write-Host "PASS_RATE: ${{ env.PASS_RATE }}"
 
       - name: Copy Cycle CLI log to workspace
-        shell: pwsh
         run: |
           $source = "C:\Users\$env:USERNAME\AppData\Roaming\Cycle\logs\cyclecli.log"
           $destination = "${{ runner.workspace }}\cyclecli.log"
