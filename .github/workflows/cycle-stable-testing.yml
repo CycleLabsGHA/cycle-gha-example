@@ -371,6 +371,26 @@ jobs:
           Write-Host "TOTAL_SCENARIOS: ${{ env.TOTAL_SCENARIOS }}"
           Write-Host "PASS_RATE: ${{ env.PASS_RATE }}"
 
+      - name: Copy Cycle CLI log to workspace
+        shell: pwsh
+        run: |
+          $source = "C:\Users\$env:USERNAME\AppData\Roaming\Cycle\logs\cyclecli.log"
+          $destination = "${{ runner.workspace }}\cyclecli.log"
+
+          if (Test-Path $source) {
+              Write-Host "Copying log file from $source to $destination"
+              Copy-Item -Path $source -Destination $destination -Force
+          } else {
+              Write-Host "Log file not found at $source"
+              exit 0
+          }
+
+      - name: Upload Cycle CLI log as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyclecli-log
+          path: ${{ runner.workspace }}\cyclecli.log
+
       - name: Save failed scenarios as artifact
         uses: actions/upload-artifact@v4
         with:
