@@ -11,7 +11,7 @@ on:
         required: false
         default: "wms1"
   schedule:
-    - cron: "0 */4 * * *"
+    - cron: "0 22 * * *"
 
 env:
   SE_MSEDGEDRIVER_MIRROR_URL: "https://msedgedriver.microsoft.com"
