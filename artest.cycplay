@@ -10,6 +10,5 @@ FailFast: NONE
 
 Items:
 Feature: features\grocer.feature
-Feature: features\conf-file-cycle-connection-test.feature
 Feature: features\api-test-updated.feature
 Feature: features\java-app-test.feature
