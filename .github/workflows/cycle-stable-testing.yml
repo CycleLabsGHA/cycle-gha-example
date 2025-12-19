@@ -1,4 +1,4 @@
-name: Cycle 2.24 Testing - STABLE
+name: Cycle Stable Release Testing
 
 on:
   push:
