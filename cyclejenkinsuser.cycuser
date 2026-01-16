@@ -40,7 +40,7 @@
     "EmailHost" : "",
     "CloseBrowserOnCycleExit" : true,
     "IEDriverLocation" : null,
-    "EdgeDriverLocation" : "C:\\tools\\selenium\\edgedriver.exe",
+    "EdgeDriverLocation" : "C:\\tools\\selenium\\msedgedriver.exe",
     "ChromeDriverLocation" : "C:\\tools\\selenium\\chromedriver.exe",
     "WinAppDriverLocation" : "C:\\Program Files (x86)\\Windows Application Driver\\WinAppDriver.exe",
     "EmailProtocol" : "SSL",
