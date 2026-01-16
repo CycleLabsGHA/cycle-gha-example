@@ -127,106 +127,241 @@ jobs:
           
           Write-Host "Installing NuGet v2"
           Register-PackageSource -Name MyNuGet -Location https://www.nuget.org/api/v2 -ProviderName NuGet -Trusted
+
+          # Install Chrome & Edge - browsers/drivers
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
           
-          ## Install Google Chrome
-          $url = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
-          $wc = New-Object net.webclient
-          $msiInstaller = "$env:temp\google-chrome.msi"
-          Write-Host "Downloading Google Chrome"
-          $wc.Downloadfile($url, $msiInstaller)
+          function Write-Section($t) { Write-Host "`n=== $t ===" }
           
-          Write-Host "Installing Google Chrome"
-          $arguments = "/i `"$msiInstaller`" /quiet"
-          Start-Process msiexec.exe -ArgumentList $arguments -Wait
-          Remove-Item $msiInstaller
+          function Ensure-Dir([string]$Path) {
+            if (-not (Test-Path $Path)) { New-Item -Path $Path -ItemType Directory -Force | Out-Null }
+          }
           
-          ## Install ChromeDriver
-          Write-Host "Creating directory structure for web drivers..."
-          $seleniumPath = "C:\tools\selenium"
-          $tempDir = "C:\tools\temp"
-          New-Item -Path $seleniumPath -ItemType Directory -Force | Out-Null
-          New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
+          function Add-GitHubEnvVar([string]$Name, [string]$Value) {
+            if ($env:GITHUB_ENV) {
+              "$Name=$Value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            }
+          }
           
-          $arch = if ([Environment]::Is64BitOperatingSystem) { "win64" } else { "win32" }
-          Write-Host "Detected OS architecture: $arch"
+          function Get-ExeVersion([string]$Path) {
+            try { return (Get-Item $Path).VersionInfo.FileVersion } catch { return $null }
+          }
           
-          if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+          function Find-FirstExistingPath([string[]]$Candidates) {
+            foreach ($p in $Candidates) {
+              if ($p -and (Test-Path $p)) { return (Resolve-Path $p).Path }
+            }
+            return $null
+          }
+          
+          function Find-InProgramFiles([string]$LeafRelativePath) {
+            $cands = @(
+              Join-Path $env:ProgramFiles $LeafRelativePath
+              Join-Path ${env:ProgramFiles(x86)} $LeafRelativePath
+            )
+            return (Find-FirstExistingPath $cands)
+          }
+          
+          function Install-ChromeEnterpriseMsi {
+            Write-Section "Install Google Chrome (Enterprise MSI)"
+          
+            $chromeExe = Find-InProgramFiles "Google\Chrome\Application\chrome.exe"
+            if ($chromeExe) {
+              Write-Host "[SKIP] Chrome already present at: $chromeExe"
+              return $chromeExe
+            }
+          
+            $url = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
+            $msiInstaller = Join-Path $env:TEMP "google-chrome.msi"
+          
+            Write-Host "Downloading Google Chrome MSI..."
+            (New-Object net.webclient).DownloadFile($url, $msiInstaller)
+          
+            Write-Host "Installing Google Chrome..."
+            $arguments = "/i `"$msiInstaller`" /quiet /norestart"
+            Start-Process msiexec.exe -ArgumentList $arguments -Wait -NoNewWindow
+          
+            Remove-Item $msiInstaller -Force -ErrorAction SilentlyContinue
+          
+            # Re-check
+            $chromeExe = Find-InProgramFiles "Google\Chrome\Application\chrome.exe"
+            if (-not $chromeExe) { throw "Chrome install finished but chrome.exe was not found." }
+          
+            Write-Host "[OK] Chrome installed at: $chromeExe"
+            return $chromeExe
+          }
+          
+          function Ensure-NuGetProvider {
+            if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
               Write-Host "Installing NuGet provider..."
-              Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+              Install-PackageProvider -Name NuGet -Force -Scope CurrentUser | Out-Null
+            }
           }
           
-          Write-Host "Installing ChromeDriver..."
-          $chromePackage = (Install-Package Selenium.WebDriver.ChromeDriver -Destination . -Force -Scope CurrentUser)[0]
-          $chromePackagePath = Join-Path -Path "." -ChildPath "$($chromePackage.Name).$($chromePackage.Version)"
+          function Install-ChromeDriverFromNuGet([string]$OutDir) {
+            Write-Section "Install ChromeDriver (NuGet Selenium.WebDriver.ChromeDriver)"
+            Ensure-NuGetProvider
           
-          Write-Host "Searching for ChromeDriver executable in $chromePackagePath..."
-          $chromeDriverExe = Get-ChildItem -Path $chromePackagePath -Recurse -Filter chromedriver.exe | Select-Object -First 1
+            # Install under a deterministic folder instead of "."
+            $pkgRoot = Join-Path $env:LOCALAPPDATA "selenium-drivers\nuget"
+            Ensure-Dir $pkgRoot
           
-          if ($chromeDriverExe) {
-              Write-Host "[OK] Found ChromeDriver at: $($chromeDriverExe.FullName)"
-              Copy-Item $chromeDriverExe.FullName -Destination $seleniumPath -Force
-          } else {
-              Write-Error "[FAIL] ChromeDriver not found."
+            $pkg = (Install-Package Selenium.WebDriver.ChromeDriver -Destination $pkgRoot -Force -Scope CurrentUser)[0]
+            $pkgPath = Join-Path $pkgRoot "$($pkg.Name).$($pkg.Version)"
+          
+            $exe = Get-ChildItem -Path $pkgPath -Recurse -Filter chromedriver.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $exe) { throw "ChromeDriver not found under $pkgPath" }
+          
+            Copy-Item $exe.FullName -Destination $OutDir -Force
+            $dst = Join-Path $OutDir "chromedriver.exe"
+          
+            Write-Host "[OK] ChromeDriver copied to: $dst"
+            return $dst
           }
           
-          ## Install Edge Driver
-          # Fetch msedgedriver
-           Write-Host "`n=== Installing EdgeDriver (latest stable) ==="
+          function Get-LatestEdgeDriverUrlWin64 {
+            # Scrape from Microsoft page; handle both msedgedriver domains.
+            $downloadPage = "https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver?ch=1"
+            $html = Invoke-WebRequest -Uri $downloadPage -UseBasicParsing
           
-          # Define paths
-          $tempDir = "$env:TEMP\edge_driver_install"
-          $seleniumPath = "C:\tools\selenium"  # Change this as needed
+            $regex = [regex]::new("https://(msedgedriver\.microsoft\.com|msedgedriver\.azureedge\.net)/([0-9\.]+)/edgedriver_win64\.zip")
+            $matches = $regex.Matches($html.Content)
           
-          # Ensure directories exist
-          if (-not (Test-Path $tempDir)) { New-Item -Path $tempDir -ItemType Directory | Out-Null }
-          if (-not (Test-Path $seleniumPath)) { New-Item -Path $seleniumPath -ItemType Directory | Out-Null }
+            if ($matches.Count -eq 0) { throw "Could not find EdgeDriver win64 link in page HTML." }
           
-          try {
-              # Step 1: Scrape latest version from Microsoft's Edge WebDriver tools page (https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver?ch=1&form=MA13LH)
-              $downloadPage = "https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver?ch=1"
-              $html = Invoke-WebRequest -Uri $downloadPage -UseBasicParsing
+            # Pick the highest version found
+            $cands = @()
+            foreach ($m in $matches) {
+              $cands += [pscustomobject]@{
+                Version = $m.Groups[2].Value
+                Url     = $m.Value
+              }
+            }
+            $chosen = $cands | Sort-Object Version -Descending | Select-Object -First 1
+            return $chosen
+          }
           
-              # Look for the version in the download link for 'edgedriver_win64.zip'
-              $regex = [regex]::new("https://msedgedriver\.microsoft\.com/([0-9\.]+)/edgedriver_win64\.zip")
-              $matches = $regex.Matches($html.Content)
+          function Install-EdgeDriver([string]$OutDir) {
+            Write-Section "Install EdgeDriver (latest stable)"
           
-              if ($matches.Count -eq 0) {
-                  throw "Could not find stable EdgeDriver version in page HTML."
+            $tempDir = Join-Path $env:TEMP "edge_driver_install"
+            Ensure-Dir $tempDir
+          
+            $edgeZip = Join-Path $tempDir "edgedriver.zip"
+            $extractPath = Join-Path $tempDir "edgedriver"
+          
+            if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
+          
+            $chosen = Get-LatestEdgeDriverUrlWin64
+            Write-Host "[OK] Selected EdgeDriver version: $($chosen.Version)"
+            Write-Host "[OK] Download URL: $($chosen.Url)"
+          
+            Write-Host "Downloading EdgeDriver..."
+            Invoke-WebRequest -Uri $chosen.Url -OutFile $edgeZip -UseBasicParsing
+          
+            Write-Host "Extracting EdgeDriver..."
+            Expand-Archive -LiteralPath $edgeZip -DestinationPath $extractPath -Force
+          
+            $exe = Get-ChildItem -Path $extractPath -Recurse -Filter msedgedriver.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $exe) { throw "msedgedriver.exe not found after extraction." }
+          
+            Copy-Item $exe.FullName -Destination $OutDir -Force
+            $dst = Join-Path $OutDir "msedgedriver.exe"
+          
+            Write-Host "[OK] EdgeDriver copied to: $dst"
+          
+            # Cleanup
+            Remove-Item $edgeZip -Force -ErrorAction SilentlyContinue
+            Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+          
+            return $dst
+          }
+          
+          function Verify-And-Print {
+            param(
+              [string]$ChromeExe,
+              [string]$EdgeExe,
+              [string]$ChromeDriverExe,
+              [string]$EdgeDriverExe
+            )
+          
+            Write-Section "Verification summary (paths + versions)"
+          
+            $items = @(
+              @{ Name="Chrome";       Path=$ChromeExe;       Env="CHROME_PATH" },
+              @{ Name="Edge";         Path=$EdgeExe;         Env="EDGE_PATH" },
+              @{ Name="ChromeDriver"; Path=$ChromeDriverExe; Env="CHROMEDRIVER_PATH" },
+              @{ Name="EdgeDriver";   Path=$EdgeDriverExe;   Env="EDGEDRIVER_PATH" }
+            )
+          
+            foreach ($i in $items) {
+              $p = $i.Path
+              if (-not $p) {
+                Write-Host ("[FAIL] {0}: path not set" -f $i.Name)
+                continue
+              }
+              if (-not (Test-Path $p)) {
+                Write-Host ("[FAIL] {0}: not found at {1}" -f $i.Name, $p)
+                continue
               }
           
-              $latestVersion = $matches[0].Groups[1].Value
-              $downloadUrl = $matches[0].Value
-          
-              Write-Host "[OK] Latest version: $latestVersion"
-              Write-Host "[OK] Download URL: $downloadUrl"
-          
-              # Step 2: Download and extract
-              $edgeZip = "$tempDir\edgedriver.zip"
-              $extractPath = "$tempDir\edgedriver"
-          
-              Write-Host "Downloading EdgeDriver..."
-              Invoke-WebRequest -Uri $downloadUrl -OutFile $edgeZip -UseBasicParsing
-          
-              Write-Host "Extracting EdgeDriver ZIP..."
-              Expand-Archive -Path $edgeZip -DestinationPath $extractPath -Force
-          
-              # Step 3: Copy msedgedriver to c:\tools\selenium
-              $edgeDriver = Get-ChildItem -Path $extractPath -Recurse -Filter msedgedriver.exe | Select-Object -First 1
-              if ($edgeDriver) {
-                  Copy-Item $edgeDriver.FullName -Destination $seleniumPath -Force
-                  Write-Host "[OK] EdgeDriver installed to $seleniumPath"
+              $ver = Get-ExeVersion $p
+              if ($ver) {
+                Write-Host ("[OK]   {0}: {1} (version {2})" -f $i.Name, $p, $ver)
               } else {
-                  Write-Warning "[FAIL] msedgedriver.exe not found in extracted files."
+                Write-Host ("[OK]   {0}: {1}" -f $i.Name, $p)
               }
+          
+              Add-GitHubEnvVar -Name $i.Env -Value $p
+            }
+          
+            # Extra: emit to logs for easy copy/paste
+            Write-Host "`nExported env vars (if running in GitHub Actions):"
+            Write-Host "  CHROME_PATH, EDGE_PATH, CHROMEDRIVER_PATH, EDGEDRIVER_PATH"
           }
-          catch {
-              Write-Error "❌ Error during msedgedriver installation: $_"
+          
+          # ----------------------------
+          # Main
+          # ----------------------------
+          $seleniumPath = "C:\tools\selenium"
+          Ensure-Dir $seleniumPath
+          
+          # Chrome
+          $chromeExe = Install-ChromeEnterpriseMsi
+          
+          # ChromeDriver
+          $chromeDriverExe = Join-Path $seleniumPath "chromedriver.exe"
+          if (Test-Path $chromeDriverExe) {
+            Write-Host "`n[SKIP] ChromeDriver already present at: $chromeDriverExe"
+          } else {
+            $chromeDriverExe = Install-ChromeDriverFromNuGet -OutDir $seleniumPath
           }
-          finally {
-              # Cleanup
-              if (Test-Path $edgeZip) { Remove-Item $edgeZip -Force }
-              if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
+          
+          # Edge (only verify path; Edge is normally present on Windows)
+          $edgeExe = Find-InProgramFiles "Microsoft\Edge\Application\msedge.exe"
+          if (-not $edgeExe) {
+            # fallback: try command resolution
+            $cmd = Get-Command msedge -ErrorAction SilentlyContinue
+            if ($cmd) { $edgeExe = $cmd.Source }
           }
+          
+          if ($edgeExe) {
+            Write-Host "`n[OK] Edge found at: $edgeExe"
+          } else {
+            Write-Host "`n[WARN] Edge not found (msedge.exe). If you need Edge installed, add an install step."
+          }
+          
+          # EdgeDriver
+          $edgeDriverExe = Join-Path $seleniumPath "msedgedriver.exe"
+          if (Test-Path $edgeDriverExe) {
+            Write-Host "`n[SKIP] EdgeDriver already present at: $edgeDriverExe"
+          } else {
+            $edgeDriverExe = Install-EdgeDriver -OutDir $seleniumPath
+          }
+          
+          # Verify / Print
+          Verify-And-Print -ChromeExe $chromeExe -EdgeExe $edgeExe -ChromeDriverExe $chromeDriverExe -EdgeDriverExe $edgeDriverExe
           
       - name: Who is my GitHub Actions Runner service running as?
         run: |
