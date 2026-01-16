@@ -1,9 +1,9 @@
 name: Cycle RC Testing
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
     inputs:
       TEST_AUTOMATION_CI_ENVIRONMENT:
