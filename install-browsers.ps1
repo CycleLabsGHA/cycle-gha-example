@@ -115,7 +115,7 @@ function Install-ChromeCftPinnedMajor([int]$Major) {
   Write-Section "Install Chrome (pinned major $Major via Chrome for Testing)"
 
   $version = Get-CftVersionForMilestone -Major $Major
-  Write-Host "[OK] Latest CfT version for M$Major: $version"
+  Write-Host "[OK] Latest CfT version for M$($Major): $version"
 
   $meta = Get-CftMetaForVersion -Version $version
   $chromeUrl = ($meta.downloads.chrome | Where-Object { $_.platform -eq "win64" } | Select-Object -First 1).url
@@ -168,7 +168,7 @@ function Install-ChromeDriverCftPinnedMajor([int]$Major, [string]$OutDir) {
   Write-Section "Install ChromeDriver (pinned major $Major via Chrome for Testing)"
 
   $version = Get-CftVersionForMilestone -Major $Major
-  Write-Host "[OK] Latest CfT version for M$Major: $version"
+  Write-Host "[OK] Latest CfT version for M$($Major): $version"
 
   $meta = Get-CftMetaForVersion -Version $version
   $driverUrl = ($meta.downloads.chromedriver | Where-Object { $_.platform -eq "win64" } | Select-Object -First 1).url
@@ -223,7 +223,9 @@ function Get-EdgeDriverCandidateLinks {
 }
 
 function Install-EdgeDriver([int]$Major, [string]$OutDir) {
-  Write-Section "Install EdgeDriver ($([string]::IsNullOrEmpty($Major) ? 'latest stable' : "pinned major $Major"))"
+  $title = "latest stable"
+  if ($Major) { $title = "pinned major $Major" }
+  Write-Section "Install EdgeDriver ($title)"
 
   $cands = Get-EdgeDriverCandidateLinks
 
@@ -255,7 +257,6 @@ function Install-EdgeDriver([int]$Major, [string]$OutDir) {
 
   Write-Host "[OK] EdgeDriver copied to: $dst"
 
-  # Cleanup
   Remove-Item $edgeZip -Force -ErrorAction SilentlyContinue
   Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
 
