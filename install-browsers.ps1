@@ -1,11 +1,31 @@
+<#
+install-browsers.ps1 (PowerShell 5.1)
+
+Modes:
+- Default: installs "normal" Chrome via Enterprise MSI (latest), installs ChromeDriver via NuGet (latest if missing),
+           EdgeDriver auto-matches installed Edge major (unless -EdgeMajor specified)
+- Pinned Chrome major:
+    - If -UseChromeForTestingWhenPinned is set: use Chrome for Testing (CfT) + matching ChromeDriver for that major
+    - Else: keep normal MSI Chrome (cannot reliably pin major); warn; install ChromeDriver matching *installed* Chrome major via CfT
+- Pinned Edge major:
+    - If -EdgeMajor is set: pick latest patch in that major from EdgeDriver page
+    - Else: auto-detect installed Edge major and pick latest patch in that major
+#>
+
 param(
-  # null/empty => latest
+  # null/empty => "latest normal Chrome" (Enterprise MSI)
   [ValidateRange(80, 250)]
   [int]$ChromeMajor,
 
+  # When -ChromeMajor is set, this forces using Chrome for Testing (CfT) to actually pin that major.
+  [switch]$UseChromeForTestingWhenPinned,
+
   # null/empty => auto-detect from installed Edge, else fallback to latest stable EdgeDriver
   [ValidateRange(80, 250)]
-  [int]$EdgeMajor
+  [int]$EdgeMajor,
+
+  # If set, always reinstall/refresh drivers even if executables already exist in C:\tools\selenium
+  [switch]$ForceDrivers
 )
 
 Set-StrictMode -Version Latest
@@ -14,9 +34,11 @@ $ErrorActionPreference = "Stop"
 # ----------------------------
 # Installing NuGet (required)
 # ----------------------------
+
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Install-PackageProvider -Name NuGet -Force
 Register-PackageSource -Name MyNuGet -Location https://www.nuget.org/api/v2 -ProviderName NuGet -Trusted
+
 
 # ----------------------------
 # Helpers
@@ -71,6 +93,13 @@ function Get-EdgeMajorFromInstalledEdge([string]$EdgeExePath) {
   return [int]($v.Split('.')[0])
 }
 
+function Get-ChromeMajorFromInstalledChrome([string]$ChromeExePath) {
+  if (-not $ChromeExePath -or -not (Test-Path $ChromeExePath)) { return $null }
+  $v = (Get-Item $ChromeExePath).VersionInfo.FileVersion
+  if (-not $v) { return $null }
+  return [int]($v.Split('.')[0])
+}
+
 # ----------------------------
 # Chrome for Testing helpers (pinned major)
 # ----------------------------
@@ -87,6 +116,9 @@ function Get-CftMetaForVersion([string]$Version) {
   return (Invoke-RestMethod -Uri $verUrl -UseBasicParsing)
 }
 
+# ----------------------------
+# Chrome (normal MSI)
+# ----------------------------
 function Install-ChromeEnterpriseMsi {
   Write-Section "Install Chrome (latest stable via Enterprise MSI)"
 
@@ -115,6 +147,9 @@ function Install-ChromeEnterpriseMsi {
   return $chromeExe
 }
 
+# ----------------------------
+# Chrome for Testing (pinned major)
+# ----------------------------
 function Install-ChromeCftPinnedMajor([int]$Major) {
   Write-Section "Install Chrome (pinned major $Major via Chrome for Testing)"
 
@@ -148,6 +183,9 @@ function Install-ChromeCftPinnedMajor([int]$Major) {
   return $exe.FullName
 }
 
+# ----------------------------
+# ChromeDriver
+# ----------------------------
 function Install-ChromeDriverLatestNuGet([string]$OutDir) {
   Write-Section "Install ChromeDriver (latest via NuGet)"
   Ensure-NuGetProvider
@@ -169,7 +207,7 @@ function Install-ChromeDriverLatestNuGet([string]$OutDir) {
 }
 
 function Install-ChromeDriverCftPinnedMajor([int]$Major, [string]$OutDir) {
-  Write-Section "Install ChromeDriver (pinned major $Major via Chrome for Testing)"
+  Write-Section "Install ChromeDriver (major $Major via Chrome for Testing)"
 
   $version = Get-CftVersionForMilestone -Major $Major
   Write-Host "[OK] Latest CfT version for M$($Major): $version"
@@ -228,7 +266,7 @@ function Get-EdgeDriverCandidateLinks {
 
 function Install-EdgeDriver([int]$Major, [string]$OutDir) {
   $title = "latest stable"
-  if ($Major) { $title = "pinned major $Major" }
+  if ($Major) { $title = "major $Major" }
   Write-Section "Install EdgeDriver ($title)"
 
   $cands = Get-EdgeDriverCandidateLinks
@@ -320,23 +358,39 @@ Write-Section "Setup driver folder"
 $seleniumPath = "C:\tools\selenium"
 Ensure-Dir $seleniumPath
 
-# Chrome + ChromeDriver
+# --- Chrome ---
 $chromeExe = $null
 $chromeDriverExe = Join-Path $seleniumPath "chromedriver.exe"
 
-if ($ChromeMajor) {
+if ($ChromeMajor -and $UseChromeForTestingWhenPinned) {
+  # True pin: CfT chrome + matching driver
   $chromeExe = Install-ChromeCftPinnedMajor -Major $ChromeMajor
   $chromeDriverExe = Install-ChromeDriverCftPinnedMajor -Major $ChromeMajor -OutDir $seleniumPath
 } else {
+  # Default: normal Chrome MSI
   $chromeExe = Install-ChromeEnterpriseMsi
-  if (Test-Path $chromeDriverExe) {
-    Write-Host "`n[SKIP] ChromeDriver already present at: $chromeDriverExe"
+
+  # If user asked for a major but did NOT allow CfT, warn and match driver to installed Chrome major
+  if ($ChromeMajor -and (-not $UseChromeForTestingWhenPinned)) {
+    $installedMajor = Get-ChromeMajorFromInstalledChrome -ChromeExePath $chromeExe
+    Write-Host "[WARN] -ChromeMajor $ChromeMajor requested, but using normal Chrome (MSI). Installed Chrome major is $installedMajor. Pinning is not enforced."
+
+    if ($installedMajor) {
+      $chromeDriverExe = Install-ChromeDriverCftPinnedMajor -Major $installedMajor -OutDir $seleniumPath
+    } else {
+      $chromeDriverExe = Install-ChromeDriverLatestNuGet -OutDir $seleniumPath
+    }
   } else {
-    $chromeDriverExe = Install-ChromeDriverLatestNuGet -OutDir $seleniumPath
+    # Latest mode: install/refresh driver
+    if ((-not $ForceDrivers) -and (Test-Path $chromeDriverExe)) {
+      Write-Host "`n[SKIP] ChromeDriver already present at: $chromeDriverExe"
+    } else {
+      $chromeDriverExe = Install-ChromeDriverLatestNuGet -OutDir $seleniumPath
+    }
   }
 }
 
-# Edge (verify path; Edge itself is usually installed on Windows)
+# --- Edge ---
 $edgeExe = Find-InProgramFiles "Microsoft\Edge\Application\msedge.exe"
 if ($edgeExe) {
   Write-Host "`n[OK] Edge found at: $edgeExe"
@@ -346,8 +400,8 @@ if ($edgeExe) {
 
 # Resolve Edge major:
 # - If user passes -EdgeMajor => use it
-# - Else: auto-detect from installed Edge (major)
-# - Else: $null => Install-EdgeDriver falls back to latest stable
+# - Else auto-detect installed Edge major
+# - Else $null => EdgeDriver falls back to latest stable
 $resolvedEdgeMajor = $EdgeMajor
 if (-not $resolvedEdgeMajor) {
   $autoMajor = Get-EdgeMajorFromInstalledEdge -EdgeExePath $edgeExe
@@ -361,7 +415,7 @@ if (-not $resolvedEdgeMajor) {
 
 # EdgeDriver
 $edgeDriverExe = Join-Path $seleniumPath "msedgedriver.exe"
-if (Test-Path $edgeDriverExe) {
+if ((-not $ForceDrivers) -and (Test-Path $edgeDriverExe)) {
   Write-Host "`n[SKIP] EdgeDriver already present at: $edgeDriverExe"
 } else {
   $edgeDriverExe = Install-EdgeDriver -Major $resolvedEdgeMajor -OutDir $seleniumPath
