@@ -119,6 +119,15 @@ jobs:
 
       - name: Install Chrome and Edge browsers/drivers
         run: |
+          Write-Host "Updating SecurityProtocolType"
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          
+          Write-Host "Installing NuGet Base"
+          Install-PackageProvider -Name NuGet -Force
+          
+          Write-Host "Installing NuGet v2"
+          Register-PackageSource -Name MyNuGet -Location https://www.nuget.org/api/v2 -ProviderName NuGet -Trusted
+          
           ## Install Google Chrome
           $url = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
           $wc = New-Object net.webclient
