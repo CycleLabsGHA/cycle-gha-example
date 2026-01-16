@@ -18,7 +18,7 @@ on:
     - cron: "0 */4 * * *"
 
 env:
-  SE_MSEDGEDRIVER_MIRROR_URL: "https://msedgedriver.microsoft.com"
+  #SE_MSEDGEDRIVER_MIRROR_URL: "https://msedgedriver.microsoft.com"
   
 jobs:
   scale-up-instance:
