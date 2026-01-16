@@ -10,6 +10,8 @@ Modes:
 - Pinned Edge major:
     - If -EdgeMajor is set: pick latest patch in that major from EdgeDriver page
     - Else: auto-detect installed Edge major and pick latest patch in that major
+- Force driver installation:
+    - For static runners; use -ForceDrivers argument to reinstall drivers everytime.
 #>
 
 param(
