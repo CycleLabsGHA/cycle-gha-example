@@ -39,6 +39,14 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
+      - uses: browser-actions/setup-chrome@v2
+      - run: chrome --version
+
+      - uses: browser-actions/setup-chrome@v2
+        id: setup-chrome
+      - run: |
+          ${{ steps.setup-chrome.outputs.chrome-path }} --version
+
       - name: Set Environment Variable
         run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $env:GITHUB_ENV
         
