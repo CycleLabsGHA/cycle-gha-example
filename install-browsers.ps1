@@ -1,17 +1,22 @@
 <#
-install-browsers.ps1 (PowerShell 5.1)
+install-browsers.ps1 (PowerShell 5.1+)
 
 Modes:
 - Default: installs "normal" Chrome via Enterprise MSI (latest), installs ChromeDriver via NuGet (latest if missing),
-           EdgeDriver auto-matches installed Edge major (unless -EdgeMajor specified)
+           EdgeDriver auto-matches installed Edge major (unless -EdgeMajor specified).
 - Pinned Chrome major:
-    - If -UseChromeForTestingWhenPinned is set: use Chrome for Testing (CfT) + matching ChromeDriver for that major
-    - Else: keep normal MSI Chrome (cannot reliably pin major); warn; install ChromeDriver matching *installed* Chrome major via CfT
-- Pinned Edge major:
-    - If -EdgeMajor is set: pick latest patch in that major from EdgeDriver page
-    - Else: auto-detect installed Edge major and pick latest patch in that major
-- Force Drivers argument:
-    - If -ForceDrivers is set, it will automatically reinstall web drivers. This is good for static agents - to ensure the drivers are kept current.
+    - If -UseChromeForTestingWhenPinned is set: use Chrome for Testing (CfT) + matching ChromeDriver for that major.
+    - Else: keep normal MSI Chrome (cannot reliably pin major); warn; install ChromeDriver matching *installed* Chrome major via CfT.
+- Edge major:
+    - If -EdgeMajor is set: installs EdgeDriver matching that major (latest patch in that major from page scrape).
+    - Else: auto-detect installed Edge major and installs matching EdgeDriver.
+- Force switches:
+    - -ForceDrivers: always refresh drivers even if already present in C:\tools\selenium
+    - -ForceBrowsers: always refresh/reinstall Chrome (MSI reinstall; CfT re-download/extract)
+
+Notes:
+- This script does NOT attempt to reinstall Microsoft Edge itself (it’s typically managed by Windows / enterprise tooling).
+- Exports env vars (when running in GitHub Actions): CHROME_PATH, EDGE_PATH, CHROMEDRIVER_PATH, EDGEDRIVER_PATH
 #>
 
 param(
@@ -27,7 +32,10 @@ param(
   [int]$EdgeMajor,
 
   # If set, always reinstall/refresh drivers even if executables already exist in C:\tools\selenium
-  [switch]$ForceDrivers
+  [switch]$ForceDrivers,
+
+  # If set, always reinstall/refresh Chrome (MSI reinstall; CfT re-download/extract)
+  [switch]$ForceBrowsers
 )
 
 Set-StrictMode -Version Latest
@@ -39,6 +47,7 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Install-PackageProvider -Name NuGet -Force
 Register-PackageSource -Name MyNuGet -Location https://www.nuget.org/api/v2 -ProviderName NuGet -Trusted
+
 
 # ----------------------------
 # Helpers
@@ -123,9 +132,12 @@ function Install-ChromeEnterpriseMsi {
   Write-Section "Install Chrome (latest stable via Enterprise MSI)"
 
   $chromeExe = Find-InProgramFiles "Google\Chrome\Application\chrome.exe"
-  if ($chromeExe) {
+  if ($chromeExe -and (-not $ForceBrowsers)) {
     Write-Host "[SKIP] Chrome already present at: $chromeExe"
     return $chromeExe
+  }
+  if ($chromeExe -and $ForceBrowsers) {
+    Write-Host "[FORCE] Reinstalling Chrome (MSI)"
   }
 
   $url = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
@@ -166,7 +178,21 @@ function Install-ChromeCftPinnedMajor([int]$Major) {
   $extractDir = Join-Path $workRoot "chrome-$version"
   $zipPath    = Join-Path $workRoot "chrome-$version.zip"
 
-  if (Test-Path $extractDir) { Remove-Item $extractDir -Recurse -Force }
+  if (Test-Path $extractDir) {
+    if ($ForceBrowsers) {
+      Write-Host "[FORCE] Reinstalling Chrome for Testing (re-download/extract)"
+      Remove-Item $extractDir -Recurse -Force
+    } else {
+      # If folder exists and not forcing, we can reuse it.
+      $existingExe = Get-ChildItem -Path $extractDir -Recurse -Filter chrome.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+      if ($existingExe) {
+        Write-Host "[SKIP] Chrome for Testing already present at: $($existingExe.FullName)"
+        return $existingExe.FullName
+      }
+      # If exe isn't present, fall through to re-extract
+      Remove-Item $extractDir -Recurse -Force
+    }
+  }
   Ensure-Dir $extractDir
 
   Write-Host "Downloading Chrome (CfT)..."
@@ -222,7 +248,21 @@ function Install-ChromeDriverCftPinnedMajor([int]$Major, [string]$OutDir) {
   $extractDir = Join-Path $workRoot "chromedriver-$version"
   $zipPath    = Join-Path $workRoot "chromedriver-$version.zip"
 
-  if (Test-Path $extractDir) { Remove-Item $extractDir -Recurse -Force }
+  if (Test-Path $extractDir) {
+    if ($ForceDrivers) {
+      Write-Host "[FORCE] Reinstalling ChromeDriver for Testing (re-download/extract)"
+      Remove-Item $extractDir -Recurse -Force
+    } else {
+      $existingExe = Get-ChildItem -Path $extractDir -Recurse -Filter chromedriver.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+      if ($existingExe) {
+        Copy-Item $existingExe.FullName -Destination $OutDir -Force
+        $dst = Join-Path $OutDir "chromedriver.exe"
+        Write-Host "[SKIP] ChromeDriver already present (reused) -> $dst"
+        return $dst
+      }
+      Remove-Item $extractDir -Recurse -Force
+    }
+  }
   Ensure-Dir $extractDir
 
   Write-Host "Downloading ChromeDriver (CfT)..."
@@ -363,11 +403,12 @@ $chromeExe = $null
 $chromeDriverExe = Join-Path $seleniumPath "chromedriver.exe"
 
 if ($ChromeMajor -and $UseChromeForTestingWhenPinned) {
-  # True pin: CfT chrome + matching driver
+  # True pin: CfT chrome + matching driver (ForceBrowsers affects CfT reuse)
   $chromeExe = Install-ChromeCftPinnedMajor -Major $ChromeMajor
+  # Driver refresh controlled by ForceDrivers
   $chromeDriverExe = Install-ChromeDriverCftPinnedMajor -Major $ChromeMajor -OutDir $seleniumPath
 } else {
-  # Default: normal Chrome MSI
+  # Default: normal Chrome MSI (ForceBrowsers forces reinstall)
   $chromeExe = Install-ChromeEnterpriseMsi
 
   # If user asked for a major but did NOT allow CfT, warn and match driver to installed Chrome major
