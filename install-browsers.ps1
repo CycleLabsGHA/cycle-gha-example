@@ -3,7 +3,7 @@ param(
   [ValidateRange(80, 250)]
   [int]$ChromeMajor,
 
-  # null/empty => latest
+  # null/empty => auto-detect from installed Edge, else fallback to latest stable EdgeDriver
   [ValidateRange(80, 250)]
   [int]$EdgeMajor
 )
@@ -11,14 +11,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-## Update Windows Dependencies - NuGet is required
-Write-Host "Updating SecurityProtocolType"
+# ----------------------------
+# Installing NuGet (required)
+# ----------------------------
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-Write-Host "Installing NuGet Base"
 Install-PackageProvider -Name NuGet -Force
-
-Write-Host "Installing NuGet v2"
 Register-PackageSource -Name MyNuGet -Location https://www.nuget.org/api/v2 -ProviderName NuGet -Trusted
 
 # ----------------------------
@@ -65,6 +62,13 @@ function Ensure-NuGetProvider {
     Write-Host "Installing NuGet provider..."
     Install-PackageProvider -Name NuGet -Force -Scope CurrentUser | Out-Null
   }
+}
+
+function Get-EdgeMajorFromInstalledEdge([string]$EdgeExePath) {
+  if (-not $EdgeExePath -or -not (Test-Path $EdgeExePath)) { return $null }
+  $v = (Get-Item $EdgeExePath).VersionInfo.FileVersion
+  if (-not $v) { return $null }
+  return [int]($v.Split('.')[0])
 }
 
 # ----------------------------
@@ -340,12 +344,27 @@ if ($edgeExe) {
   Write-Host "`n[WARN] Edge not found (msedge.exe). If you need Edge installed, add an install step."
 }
 
+# Resolve Edge major:
+# - If user passes -EdgeMajor => use it
+# - Else: auto-detect from installed Edge (major)
+# - Else: $null => Install-EdgeDriver falls back to latest stable
+$resolvedEdgeMajor = $EdgeMajor
+if (-not $resolvedEdgeMajor) {
+  $autoMajor = Get-EdgeMajorFromInstalledEdge -EdgeExePath $edgeExe
+  if ($autoMajor) {
+    $resolvedEdgeMajor = $autoMajor
+    Write-Host "[OK] Auto-detected Edge major: $resolvedEdgeMajor"
+  } else {
+    Write-Host "[WARN] Could not detect Edge major; falling back to latest stable EdgeDriver."
+  }
+}
+
 # EdgeDriver
 $edgeDriverExe = Join-Path $seleniumPath "msedgedriver.exe"
 if (Test-Path $edgeDriverExe) {
   Write-Host "`n[SKIP] EdgeDriver already present at: $edgeDriverExe"
 } else {
-  $edgeDriverExe = Install-EdgeDriver -Major $EdgeMajor -OutDir $seleniumPath
+  $edgeDriverExe = Install-EdgeDriver -Major $resolvedEdgeMajor -OutDir $seleniumPath
 }
 
 # Final verification / output
