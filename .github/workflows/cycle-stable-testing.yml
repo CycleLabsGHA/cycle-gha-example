@@ -121,9 +121,7 @@ jobs:
         shell: powershell
         run: |
           Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-          .\install-browsers.ps1 -ChromeMajor 137 -EdgeMajor 137 -ForceDrivers -ForceBrowsers
-          #.\install-browsers.ps1 -ForceBrowsers 
-          #.\install-browsers.ps1 -ChromeMajor 137 -EdgeMajor 143
+          .\install-browsers.ps1 -ChromeMajor 137 -EdgeMajor 137 -ForceDrivers -ForceBrowsers
           
       - name: Who is my GitHub Actions Runner service running as?
         run: |
