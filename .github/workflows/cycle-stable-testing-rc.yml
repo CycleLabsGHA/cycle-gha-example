@@ -80,6 +80,21 @@ jobs:
       
           az --version
 
+      - &ensure-az
+        name: Ensure Azure CLI on PATH
+        shell: powershell
+        run: |
+          $azDir = "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin"
+
+          if (-not (Test-Path $azDir)) {
+            throw "Azure CLI directory not found: $azDir"
+          }
+
+          $azDir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+          where.exe az
+          az --version
+
       - &azure-login
         name: Azure Login
         uses: azure/login@v1
@@ -191,6 +206,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
     steps:
+      - *ensure-az
       - *azure-login
       - *retrieve-secrets
       - *check-env  
