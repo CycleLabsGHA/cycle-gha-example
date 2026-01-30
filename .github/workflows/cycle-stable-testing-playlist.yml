@@ -56,25 +56,25 @@ jobs:
       - name: Show Runner Workspace
         run: echo "The workspace of the runner is ${{ runner.workspace }}"
       
-      - name: Install Azure CLI if not installed
-        shell: powershell
-        run: |
-          $azDir = "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin"
+      # - name: Install Azure CLI if not installed
+      #   shell: powershell
+      #   run: |
+      #     $azDir = "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin"
       
-          if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-            Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile AzureCLI.msi
-            Start-Process msiexec.exe -ArgumentList "/I AzureCLI.msi /quiet /norestart" -NoNewWindow -Wait
+      #     if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+      #       Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile AzureCLI.msi
+      #       Start-Process msiexec.exe -ArgumentList "/I AzureCLI.msi /quiet /norestart" -NoNewWindow -Wait
       
-            if (-not (Test-Path $azDir)) { throw "Expected az directory not found: $azDir" }
-          }
+      #       if (-not (Test-Path $azDir)) { throw "Expected az directory not found: $azDir" }
+      #     }
       
-          # Make az available to subsequent steps
-          $azDir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      #     # Make az available to subsequent steps
+      #     $azDir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
       
-          # Also update current step
-          $env:Path = "$azDir;$env:Path"
+      #     # Also update current step
+      #     $env:Path = "$azDir;$env:Path"
       
-          az --version
+      #     az --version
 
       - &ensure-az
         name: Ensure Azure CLI on PATH
@@ -82,14 +82,14 @@ jobs:
         run: |
           $azDir = "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin"
           $azCmd = Join-Path $azDir "az.cmd"
-          
+      
           if (-not (Test-Path $azCmd)) { throw "Azure CLI not found: $azCmd" }
-          
+      
           $env:Path = "$azDir;$env:Path"
           $azDir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-          
+      
           where.exe az
-          az --version
+          & $azCmd --version
 
       - &azure-login
         name: Azure Login
@@ -127,14 +127,14 @@ jobs:
           }
 
       - &check-env
-          name: Debug - List exported env var names
-          shell: powershell
-          run: |
-            Write-Output "Env vars currently available:"
-            Get-ChildItem Env: | Where-Object { $_.Name -match '^(PW_|UN_|CS_)' } | ForEach-Object {
-              Write-Output " - $($_.Name)"
-            }
-    
+        name: Debug - List exported env var names
+        shell: powershell
+        run: |
+          Write-Output "Env vars currently available:"
+          Get-ChildItem Env: | Where-Object { $_.Name -match '^(PW_|UN_|CS_)' } | ForEach-Object {
+            Write-Output " - $($_.Name)"
+          }
+  
       - name: Who is my GitHub Actions Runner service running as?
         run: |
           Get-WmiObject Win32_Service | Where-Object { $_.Name -like "*actions.runner*" } | Select Name, StartName
