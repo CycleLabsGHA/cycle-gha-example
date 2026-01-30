@@ -57,32 +57,24 @@ jobs:
         run: echo "The workspace of the runner is ${{ runner.workspace }}"
       
       - name: Install Azure CLI if not installed
+        shell: powershell
         run: |
-          $azPath = "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin"
+          $azDir = "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin"
       
           if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-              Write-Host "Azure CLI not found. Installing..."
+            Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile AzureCLI.msi
+            Start-Process msiexec.exe -ArgumentList "/I AzureCLI.msi /quiet /norestart" -NoNewWindow -Wait
       
-              Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile AzureCLI.msi
-              Start-Process msiexec.exe -ArgumentList "/I AzureCLI.msi /quiet /norestart" -NoNewWindow -Wait
-      
-              if (-not (Test-Path $azPath)) {
-                  Write-Error "Azure CLI install completed but expected path not found."
-                  exit 1
-              }
-      
-              # Update PATH for current session
-              $env:Path = "$azPath;$env:Path"
-      
-              Write-Host "Azure CLI installed and PATH updated."
-          }
-          else {
-              Write-Host "Azure CLI is already installed."
+            if (-not (Test-Path $azDir)) { throw "Expected az directory not found: $azDir" }
           }
       
-          # Verify availability
+          # Make az available to subsequent steps
+          $azDir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      
+          # Also update current step
+          $env:Path = "$azDir;$env:Path"
+      
           az --version
-        shell: powershell
 
       - &azure-login
         name: Azure Login
