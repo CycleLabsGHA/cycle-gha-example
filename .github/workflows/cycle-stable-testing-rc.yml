@@ -85,13 +85,13 @@ jobs:
         shell: powershell
         run: |
           $azDir = "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin"
-
-          if (-not (Test-Path $azDir)) {
-            throw "Azure CLI directory not found: $azDir"
-          }
-
+          $azCmd = Join-Path $azDir "az.cmd"
+          
+          if (-not (Test-Path $azCmd)) { throw "Azure CLI not found: $azCmd" }
+          
+          $env:Path = "$azDir;$env:Path"
           $azDir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-
+          
           where.exe az
           az --version
 
