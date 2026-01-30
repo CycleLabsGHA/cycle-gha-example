@@ -80,6 +80,34 @@ jobs:
       
       #     az --version
 
+      - name: Debug Azure CLI presence
+        shell: powershell
+        run: |
+          Write-Host "Runner: $env:COMPUTERNAME"
+          Write-Host "User: $env:USERNAME"
+          Write-Host "ProgramFiles(x86): ${env:ProgramFiles(x86)}"
+          Write-Host "PATH (first 10):"
+          ($env:Path -split ';' | Select-Object -First 10) | ForEach-Object { "  $_" }
+      
+          Write-Host "`nChecking expected Azure CLI locations..."
+          $candidates = @(
+            "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin\az.cmd",
+            "C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin\az.exe",
+            "C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd",
+            "C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.exe"
+          )
+      
+          foreach ($p in $candidates) {
+            if (Test-Path $p) { Write-Host "FOUND: $p" } else { Write-Host "MISS : $p" }
+          }
+      
+          Write-Host "`nTry locate via where.exe:"
+          where.exe az
+      
+          Write-Host "`nSearch disk for az.cmd (can take a bit):"
+          Get-ChildItem "C:\Program Files*" -Recurse -Filter "az.cmd" -ErrorAction SilentlyContinue |
+            Select-Object -First 20 FullName | ForEach-Object { Write-Host $_ }
+
       - &ensure-az
         name: Ensure Azure CLI on PATH
         shell: powershell
