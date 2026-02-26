@@ -12,7 +12,7 @@
     "WebdriverHeadlessChrome" : false,
     "LocalReportOutputFormat" : "HTML",
     "FeatureFailureStrategy" : "FEATURE",
-    "StepDelay" : 500,
+    "StepDelay" : 0,
     "DefaultTerminalConnectWithin" : 90000,
     "NonActionStepDelay" : 0,
     "CaptureImageWidth" : 40,
