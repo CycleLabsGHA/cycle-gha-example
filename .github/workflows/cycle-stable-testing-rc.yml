@@ -414,7 +414,37 @@ jobs:
           name: cycle-artifacts
           path: |
             ${{ runner.workspace }}/cycle-gha-example/featureReports/
-            ${{ env.USERPROFILE }}/AppData/Roaming/Cycle/logs/
+
+      - name: Copy Cycle logs to workspace
+        run: |
+          $logFolder = "$env:USERPROFILE\AppData\Roaming\Cycle\logs"
+          $destinationFolder = "${{ runner.workspace }}"
+      
+          $files = @(
+            "cyclecli.log",
+            "cycle-result-service.log"
+          )
+      
+          foreach ($file in $files) {
+            $sourcePath = Join-Path $logFolder $file
+            $destinationPath = Join-Path $destinationFolder $file
+      
+            if (Test-Path $sourcePath) {
+              Write-Host "Copying $file from $sourcePath to $destinationPath"
+              Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+            } else {
+              Write-Host "$file not found at $sourcePath"
+            }
+          }
+
+      - name: Upload Cycle CLI log as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyclecli-log
+          path: |
+            ${{ runner.workspace }}\cyclecli.log
+            ${{ runner.workspace }}\cycle-result-service.log
+
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
   
