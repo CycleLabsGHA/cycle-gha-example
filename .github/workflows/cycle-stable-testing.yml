@@ -375,6 +375,7 @@ jobs:
           Write-Host "PASS_RATE: ${{ env.PASS_RATE }}"
 
       - name: Copy Cycle logs to workspace
+        if: always()
         run: |
           $logFolder = "$env:USERPROFILE\AppData\Roaming\Cycle\logs"
           $destinationFolder = "${{ runner.workspace }}"
@@ -397,6 +398,7 @@ jobs:
           }
 
       - name: Upload Cycle CLI log as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cyclecli-log
@@ -405,6 +407,7 @@ jobs:
             ${{ runner.workspace }}\cycle-result-service.log
 
       - name: Save failed scenarios as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: failed-scenarios
