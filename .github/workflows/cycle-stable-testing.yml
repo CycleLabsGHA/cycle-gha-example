@@ -400,10 +400,13 @@ jobs:
           path: ${{ runner.workspace }}\failed_scenarios.txt
           
       - name: Upload Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cycle-reports
-          path: ${{ runner.workspace }}\cycle-gha-example\featureReports\
+          name: cycle-artifacts
+          path: |
+            ${{ runner.workspace }}/cycle-gha-example/featureReports/
+            ${{ env.USERPROFILE }}/AppData/Roaming/Cycle/logs/
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
   
