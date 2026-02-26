@@ -416,6 +416,7 @@ jobs:
             ${{ runner.workspace }}/cycle-gha-example/featureReports/
 
       - name: Copy Cycle logs to workspace
+        if: always()
         run: |
           $logFolder = "$env:USERPROFILE\AppData\Roaming\Cycle\logs"
           $destinationFolder = "${{ runner.workspace }}"
@@ -438,6 +439,7 @@ jobs:
           }
 
       - name: Upload Cycle CLI log as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cyclecli-log
