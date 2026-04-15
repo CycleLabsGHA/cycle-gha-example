@@ -2,7 +2,7 @@
 An example of how to use Cycle CLI within a GitHub Actions workflow.
 
 ## Branching
-We test both Cycle `stable` as well as Cycle `rc` within GitLab.
+We test both Cycle `stable` as well as Cycle `rc` within GitHub Actions.
 
 ![MAIN vs. RC](https://cycldocimgs.blob.core.windows.net/docimgs/main-vs-rc.png)
 
