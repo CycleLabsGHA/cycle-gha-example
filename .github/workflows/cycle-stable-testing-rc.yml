@@ -490,4 +490,4 @@ jobs:
           fi
       - name: Send Slack Notification
         run: |
-          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"Cycle RC Test Suite ${{ env.STATUS }} on GitHub Actions - (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Open>)\\nVersion: \`${{ needs.prep-worker.outputs.cycle_version }}\`\"}" ${{ secrets.SLACK_WEBHOOK_URI }}
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"Cycle RC Test Suite ${{ env.STATUS }} on :github: GitHub Actions - (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Open>)\\nVersion: \`${{ needs.prep-worker.outputs.cycle_version }}\`\"}" ${{ secrets.SLACK_WEBHOOK_URI }}
