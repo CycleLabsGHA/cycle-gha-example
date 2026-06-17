@@ -38,6 +38,8 @@ jobs:
     needs: scale-up-instance
     runs-on: self-hosted
     timeout-minutes: 30  # Set the timeout to 10 minutes
+    outputs:
+      cycle_version: ${{ steps.cycle_version.outputs.version }}
     steps:
       - name: Set Environment Variable
         run: echo "TEST_AUTOMATION_CI_ENVIRONMENT=${{ inputs.TEST_AUTOMATION_CI_ENVIRONMENT }}" >> $env:GITHUB_ENV
@@ -181,7 +183,11 @@ jobs:
           Start-Sleep -Seconds 10
 
       - name: Get Cycle-CLI version
-        run: cycle-cli.exe -v
+        id: cycle_version
+        run: |
+          $ver = (cycle-cli.exe -v).Trim()
+          Write-Output $ver
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
 
   cycle-api-test:
     needs: prep-worker
@@ -469,3 +475,19 @@ jobs:
       - name: Make sure the instance has been deallocated
         run: |
           az vmss list-instances --resource-group "10267-cycle-gha-runner-scaleset-rc" --name "cycle-gha-runner-scaleset-rc" --output table
+
+  notify-slack:
+    needs: [prep-worker, cycle-api-test, cycle-browser-test, cycle-connection-test, cycle-java-app-test, cycle-gather-logs, scale-down-instance]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Status
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" == "true" ] || [ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]; then
+            echo "STATUS=Failed" >> $GITHUB_ENV
+          else
+            echo "STATUS=Succeeded" >> $GITHUB_ENV
+          fi
+      - name: Send Slack Notification
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"Cycle RC Testing Pipeline ${{ env.STATUS }}!\\nVersion: \`${{ needs.prep-worker.outputs.cycle_version }}\` (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Open>)\"}" ${{ secrets.SLACK_WEBHOOK_URI }}
