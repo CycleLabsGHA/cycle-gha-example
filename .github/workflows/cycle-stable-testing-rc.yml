@@ -501,4 +501,4 @@ jobs:
           fi
       - name: Send Slack Notification
         run: |
-          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"${{ env.EMOJI }} Cycle RC Test Suite ${{ env.STATUS }} on :github: GitHub Actions - (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Open>)\\nVersion: \`${{ needs.prep-worker.outputs.cycle_version }}\`${{ env.FAILED_JOBS_MSG }}\"}" ${{ secrets.SLACK_WEBHOOK_URI }}
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"${{ env.EMOJI }} Cycle RC Test Suite ${{ env.STATUS }} on :github_purple: GitHub Actions - (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Open>)\\nVersion: \`${{ needs.prep-worker.outputs.cycle_version }}\`${{ env.FAILED_JOBS_MSG }}\"}" ${{ secrets.SLACK_WEBHOOK_URI }}
