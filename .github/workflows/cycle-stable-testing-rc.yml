@@ -483,11 +483,22 @@ jobs:
     steps:
       - name: Set Status
         run: |
+          FAILED_JOBS=""
+          if [ "${{ needs.cycle-api-test.result }}" == "failure" ] || [ "${{ needs.cycle-api-test.result }}" == "cancelled" ]; then FAILED_JOBS="${FAILED_JOBS}\\n• API Test"; fi
+          if [ "${{ needs.cycle-browser-test.result }}" == "failure" ] || [ "${{ needs.cycle-browser-test.result }}" == "cancelled" ]; then FAILED_JOBS="${FAILED_JOBS}\\n• Browser Test"; fi
+          if [ "${{ needs.cycle-connection-test.result }}" == "failure" ] || [ "${{ needs.cycle-connection-test.result }}" == "cancelled" ]; then FAILED_JOBS="${FAILED_JOBS}\\n• Connection Test"; fi
+          if [ "${{ needs.cycle-java-app-test.result }}" == "failure" ] || [ "${{ needs.cycle-java-app-test.result }}" == "cancelled" ]; then FAILED_JOBS="${FAILED_JOBS}\\n• Java App Test"; fi
+          if [ "${{ needs.prep-worker.result }}" == "failure" ] || [ "${{ needs.prep-worker.result }}" == "cancelled" ]; then FAILED_JOBS="${FAILED_JOBS}\\n• Prep Worker"; fi
+
           if [ "${{ contains(needs.*.result, 'failure') }}" == "true" ] || [ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]; then
             echo "STATUS=Failed" >> $GITHUB_ENV
+            echo "EMOJI=:x:" >> $GITHUB_ENV
+            echo "FAILED_JOBS_MSG=\\n*Failed Jobs:*$FAILED_JOBS" >> $GITHUB_ENV
           else
             echo "STATUS=Succeeded" >> $GITHUB_ENV
+            echo "EMOJI=:white_check_mark:" >> $GITHUB_ENV
+            echo "FAILED_JOBS_MSG=" >> $GITHUB_ENV
           fi
       - name: Send Slack Notification
         run: |
-          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"Cycle RC Test Suite ${{ env.STATUS }} on :github_purple: GitHub Actions - (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Open>)\\nVersion: \`${{ needs.prep-worker.outputs.cycle_version }}\`\"}" ${{ secrets.SLACK_WEBHOOK_URI }}
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"${{ env.EMOJI }} Cycle RC Test Suite ${{ env.STATUS }} on :github: GitHub Actions - (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Open>)\\nVersion: \`${{ needs.prep-worker.outputs.cycle_version }}\`${{ env.FAILED_JOBS_MSG }}\"}" ${{ secrets.SLACK_WEBHOOK_URI }}
